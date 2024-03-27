@@ -118,9 +118,7 @@ The main roles in the architecture are the following:
 - Users: they express their explicit consent to contribute to an AI training plan 
 
 
-![alt text](image.png)
-
-
+![DissecML](./schemas/dissecml.png)
 
 ## Dynamic Behaviour
 
