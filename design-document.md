@@ -246,7 +246,7 @@ Then, the DP can locally train the model based on user data, and update the mode
 #### Split model in shares
 
 Once the local training is done, the data is split using a secret sharing technique. A security parameter $S$ determines the number of shares, a parameter retrieved in the execution plan metadata. 
-Let $x$ be the training result, then the user creates the shares  $\mathbf{x}_i = \mathbf{x} + b_i$, where $b_i$ is a noise vector such that $$\sum_{i=1}^S b_i = 0$$.
+Let $x$ be the training result, then the user creates the shares  $`\mathbf{x}_i = \mathbf{x} + b_i`$, where $b_i$ is a noise vector such that $$\sum_{i=1}^S b_i = 0$$
 
 ⚠️ It means that each share is the complete model with noise on the weights. This introduces a computational and storage overhead that might be problematic for large models.
 
