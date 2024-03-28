@@ -27,24 +27,24 @@ to access, for reasons of privacy, security, and regulation.
 
 ## Requirements
 
-_High-level BB requirements with identifiers.
-eg * **R1.** BB MUST communicate with [other BB]_
-
-_See also the Requirements spreadsheets
-Functional requirements should be extended with extra-functional ones:
-Timeliness (expected response time@request size), Througput (number of requess served by the BB),etc.
-These may be defined later with UCs but have to be indentified here and be part of configuration/deplomyent options_
+- The Catalog should build an execution plan and publish the AI training plan 
+- The Consent BB should be able to process user consent to be DP for a plan
+- The Consent BB should provide the list of DP URLs for a given plan
+- The BB should build - The aggregation tree including DP and DA
+- The BB should retrieved user data
+- The Edge AI Translator BB should translate user data w.r.t - The execution plan 
+- The BB should allow DP to securely train AI model
+- The BB should allow Data Aggregators (DA) to compute from DP work
+- The BB should eventually produce a trained AI model
+- The BB should be able to measure model accuracy
+- The Trustworthy AI BB should be able to evaluate the model
 
 
 ## Integrations
 
-_See "01_BB Connections" spreadsheet_
 
 ### Direct Integrations with Other BBs
 
-_What other BBs does this BB interact with directly (without the connector)?
-How?
-Why?_
 
 - *Catalog*. The "registry", a new Catalog component, allows to define execution plans to train AI models
 
