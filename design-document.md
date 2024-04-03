@@ -118,6 +118,7 @@ The main roles in the architecture are the following:
 - Users: they express their explicit consent to contribute to an AI training plan 
 
 
+### Aggregation tree
 ![DissecML](./schemas/dissecml.png)
 
 ## Dynamic Behaviour
@@ -132,6 +133,19 @@ An AI Provider requests the Catalog to publish an AI training plan. It includes:
 - Algorithms to contribute
 - A user-friendly description
 
+```mermaid
+sequenceDiagram
+    participant AIProvider as AI Provider
+    participant Catalog
+    participant DA1 as DA
+    
+    AIProvider->>Catalog: Publish AI training plan
+    DA1->>Catalog: Register
+    Catalog->>Catalog: Check enough DA are registered
+    Catalog->>Catalog: Build aggregation tree
+    Catalog->>Catalog: Publish plan
+```
+
 On the other side, Data Aggregators (DA) register to be part of an execution plan. This execution plan includes an Aggregation Tree,  describing how the training data should be split, and who should be MDA, i.e. the last aggregator producing the final model.
 Once there are enough registered DA, the Catalog computes the Aggregation Tree. 
   
@@ -145,18 +159,7 @@ Increasing the number of DA offer better security, as it reduces the collusion i
 On the other hand, it also increases complexity, network load and risk of failures. 
 So this is a trade-off to chose between those contraints.
 
-```mermaid
-sequenceDiagram
-    participant AIProvider as AI Provider
-    participant Catalog
-    participant DA1 as DA
-    
-    AIProvider->>Catalog: Publish AI training plan
-    DA1->>Catalog: Register
-    Catalog->>Catalog: Check enough DA are registered
-    Catalog->>Catalog: Build aggregation tree
-    Catalog->>Catalog: Publish plan
-```
+
 
 ### Consent
 
