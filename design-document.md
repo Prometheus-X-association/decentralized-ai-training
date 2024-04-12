@@ -105,6 +105,72 @@ _Gives:_
 
 _Please add a short description, also estimating the workload for a typical transaction of your BB (e.g. "100.000 record/submission", "traces of n*10.000s of events", etc.)._
 
+
+### AI training plan
+
+```json
+{
+  "model_name": "Exam success",
+  "data_format": {
+    "data_type": "xAPI",
+    "data_schema": {
+      // xAPI data schema
+    }
+  },
+  "model_description": "Compute the probability of exam success based on learning traces",
+  "model": <binary>,
+}
+```
+
+ℹ️ The algorithms to contribute should be wrapped into the actual model. An `update_model` method should be defined.
+
+### Execution plan
+
+```json
+{
+  "training_plan": {
+    "model_name": "Exam success",
+    "data_format": {
+      "data_type": "xAPI",
+      "data_schema": {
+        // xAPI data schema
+      }
+    },
+    "model_description": "Compute the probability of exam success based on learning traces",
+    "model": <binary>,
+  },
+  "aggregation_tree": {
+    "aggregators": [
+      {
+        "url": "https://aggregator1.cozycloud.cc",
+        "org": "Cozy Cloud"
+      },
+      {
+        "url": "https://aggregator2.cozycloud.cc",
+        "org": "Cozy Cloud"
+      },
+      {
+        "url": "https://ai-aggregator.prometheus-x.org",
+        "org": "PTX"
+      }
+    ],
+    "processors": [
+      {
+        "url": "https://alice.mycozy.cloud"
+      },
+      {
+        "url": "https://bob.mycozy.cloud"
+      },
+      {
+        "url": "https://charlie.super.cloud"
+      },
+      ...
+    ]
+  }
+}
+```
+
+
 ## Architecture
 
 The main roles in the architecture are the following:
