@@ -68,7 +68,15 @@ Why?_
 
 ### Data Format Standards
 
-_Any data type / data format standards the BB adheres to_
+By design, the AI training should be generic enough to support 
+
+The expected data format for user data is xAPI for learning records.
+Additionally, useful metadata about the learning records could be used, e.g. the number of records, their frequency, ...
+
+The PLRS is expected to provide correctly formatted data, thanks to the LRC component.
+
+The AI model should be serialized in standard format such as pickle or joblib. 
+
 
 ### Mapping to Data Space Reference Architecture Models
 
@@ -77,67 +85,37 @@ _Mapping to [DSSC](https://dssc.eu/space/DDP/117211137/DSSC+Delivery+Plan+-+Summ
 
 ## Input / Output Data
 
-_What data does this BB receive?
-What data does this BB produce?
-If possible, elaborate on the details (data format, contents, etc) and also add potential data requirements._
-
-_Mermaid has no such feature, but you may use PlantUML to automatically visualize JSON schemata; for example:_
-
-```plantuml
-@startjson
-{
-   "fruit":"Apple",
-   "size":"Large",
-   "color": ["Red", "Green"]
-}
-@endjson
-```
-
-_Creating the diagram via the PlantUML JAR:_
-
-```shell-session
-$ java -jar plantuml.jar -tsvg json.puml
-```
-
-_Gives:_
-
-![PlantUML JSON Example](diagrams/json.svg)
-
-_Please add a short description, also estimating the workload for a typical transaction of your BB (e.g. "100.000 record/submission", "traces of n*10.000s of events", etc.)._
-
 
 ### AI training plan
 
 ```json
 {
-  "model_name": "Exam success",
-  "data_format": {
-    "data_type": "xAPI",
-    "data_schema": {
-      // xAPI data schema
-    }
+  "id": "training_1",
+  "model_name": "Activity success",
+  "target_data": {
+    "type": "xAPI",
+    "queries": [{
+      // Mongo-like predicates to target specific data 
+    }],
+    "fields": [] // Fields that should be included
   },
-  "model_description": "Compute the probability of exam success based on learning traces",
-  "model": <binary>,
+  "model_description": "Evaluate the probability of activity success based on learning traces",
+  "base_model": "https://model-url-with-token.download",
 }
 ```
 
-ℹ️ The algorithms to contribute should be wrapped into the actual model. An `update_model` method should be defined.
+ℹ️ The algorithms to contribute should be wrapped into the actual model. An `update_model` method should be defined defining how the data should be processed and the model weights updated.
+
+ℹ️ Due to size constraints, the model is not directly provided, but can be downloaded from the given URL.
+
 
 ### Execution plan
 
 ```json
 {
+  "id": "exec_1",
   "training_plan": {
-    "model_name": "Exam success",
-    "data_format": {
-      "data_type": "xAPI",
-      "data_schema": {
-        // xAPI data schema
-      }
-    },
-    "model_description": "Compute the probability of exam success based on learning traces",
-    "model": <binary>,
+    // training plan content
   },
   "aggregation_tree": {
     "aggregators": [
@@ -162,13 +140,82 @@ _Please add a short description, also estimating the workload for a typical tran
         "url": "https://bob.mycozy.cloud"
       },
       {
-        "url": "https://charlie.super.cloud"
+        "url": "https://supercloud.com/charlie"
       },
       ...
     ]
   }
 }
 ```
+
+ℹ️ The computation plan include the training plan as well as the aggregation tree.
+The aggregation tree is composed of data aggregators (DA) and data processors (DP). The DA should be operated by trustful organizations willing to provide infrastructure support, while the DP are users endpoints.
+
+
+### Output AI model
+
+```json
+{
+  "execution_plan_id": "exec_1",
+  "training_plan_id": "training_1",
+  "model_name": "Activity success",
+  "model_id": "success1",
+  "model_version": "1.1",
+  "contributors_count": 42,
+  "model": "https://new-model-url-with-token.download"
+}
+```
+
+This is the result of the BB. A new model version is produced, with an URL to download it. 
+Additional metadata such as the number of contributors (DP) can be provided. 
+
+
+### Data query
+
+This is used to retrieve actual user data from   the DP.
+
+**Input**
+```json
+{
+  "model_name": "success1",
+  "data_description": [
+    {
+      "type": "xAPI",
+      "queries": [
+        {
+          "verbs": {
+            "$in": ["https://w3id.org/xapi/netc/verbs/accessed"]
+          }
+          "result.duration": {
+            "$gt": "600"
+          }
+        },
+        {
+          "result.success": {
+            "$exists": true
+          }
+        },
+      ]
+    }
+  ]
+}
+```
+
+**Output**
+```json
+{
+  "data": [
+    {...} // xAPI documents
+  ],
+  "meta": {
+    "count": 42
+  }
+}
+```
+
+In this example, we query all the xAPI documents with accessed activity for more than 10 minutes, as well as activities with success information.
+
+ℹ️ If no `queries` is specified, any data with the given type should be queried.
 
 
 ## Architecture
@@ -402,6 +449,92 @@ _Test definitions and testing environment should be availaible, and the tests sh
 ### Test plan
 Testing strategy, tools and methods chosen, methods for acceptance criteria.
 To be detailed.
+
+#### Protocol execution test
+
+We describe the steps for a complete test of the protocol execution to train an AI model.   
+
+**Setup**
+  * 2 running DA servers
+  * At least 2 running DP
+
+Execution plan:
+```json
+{
+  "id": "execution_plan_test",
+  "training_plan": {
+    "id": "training_test",
+    "model_name": "Activity success test",
+    "model_id": "model_test",
+    "target_data": {
+      "type": "xAPI",
+      "queries": [
+        {
+          "verbs": {
+            "$in": ["https://w3id.org/xapi/netc/verbs/accessed"]
+          }
+          "result.duration": {
+            "$gt": "600"
+          }
+        },
+        {
+          "result.success": {
+            "$exists": true
+          }
+        },
+      ]
+    },
+    "model_description": "Model test",
+    "base_model": "https://dissecml.test.cozycloud.cc/base_model_test",
+  },
+  "aggregation_tree": {
+    "aggregators": [
+      {
+        "url": "https://dissecml-da1.test.cozycloud.cc",
+        "org": "Cozy Cloud"
+      },
+      {
+        "url": "https://dissecml-da2.test.cozycloud.cc",
+        "org": "Cozy Cloud"
+      },
+    ],
+    "processors": [
+      {
+        "url": "https://dissecml-dp1.cozy.works"
+      },
+      {
+        "url": "https://dissecml-dp2.cozy.works"
+      }
+    ]
+  }
+}
+```
+
+**Steps**
+
+* Request endpoint start with execution plan, e.g. `https://dissecml.test.cozycloud.cc/run/`
+  * Expected response: 200 OK
+* Wait for enough time, e.g. 5 minute
+* Request endpoint result on the execution plan id e.g. `https://dissecml.test.cozycloud.cc/run/execution_plan_test`
+
+**Expected result**
+
+```json
+{
+  "execution_plan_id": "execution_plan_test",
+  "training_plan_id": "training_test",
+  "model_name": "Activity success test",
+  "model_id": "model_test",
+  "model_version": "1.1",
+  "contributors_count": 2,
+  "timestamp": 1234567,
+  "model": "https://dissecml.test.cozycloud.cc/model_test_1-1"
+}
+```
+
+The timestamp is when the new model is produced, so it *must* be greater than the timestamp at the start of the test.
+
+
 
 ### Unit tests
 
