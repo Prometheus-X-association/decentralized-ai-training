@@ -1,4 +1,4 @@
-# Decentralized AI training Design Document
+# Decentralized AI training BB – Design Document
 
 The goal is to be able to train AI models, without the need to centralize training data. This is particularly virtuous in the case of training on personal data, which is complicated to centralize for reasons of privacy, security, and regulation. 
 
