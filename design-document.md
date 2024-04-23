@@ -231,8 +231,20 @@ The main roles in the architecture are the following:
 - Users: they express their explicit consent to contribute to an AI training plan 
 
 
+Here is an overview of the architecture
+
+### Build Execution plan
+
+![Build Execution Plan](./schemas/build_execution_plan.png)
+
+### AI Training
+
+![AI Training](./schemas/ai_training.png)
+
+
 ### Aggregation tree
-![DissecML](./schemas/dissecml.png)
+
+![Aggregation Tree](./schemas/aggregation_tree.png)
 
 ## Dynamic Behaviour
 
@@ -415,6 +427,9 @@ Then, it computes the intermediate aggregate from the shares of each DP, and sen
 The last DA parent is the Main Data Aggregator (MDA). Once all the expected intermediate aggregates are received, it triggers the final aggregation. Depending on the model, it may simply sum as for the DAs (typically sufficient for a naive bayes model), or compute an average, thanks to the sum of weights + the sum of contributions.
 
 The final model is then sent and saved to the Catalog and can be retrieved by the AI provider.
+
+
+![alt text](image.png)
 
 
 
