@@ -93,11 +93,7 @@ _Mapping to [DSSC](https://dssc.eu/space/DDP/117211137/DSSC+Delivery+Plan+-+Summ
   "id": "training_1",
   "model_name": "Activity success",
   "target_data": {
-    "type": "xAPI",
-    "queries": [{
-      // Mongo-like predicates to target specific data 
-    }],
-    "fields": [] // Fields that should be included
+    // Data description following PDC datatype format. Might need to be extended.
   },
   "model_description": "Evaluate the probability of activity success based on learning traces",
   "base_model": "https://model-url-with-token.download",
@@ -172,7 +168,7 @@ Additional metadata such as the number of contributors (DP) can be provided.
 
 ### Data query
 
-This is used to retrieve actual user data from   the DP.
+This is used to retrieve actual user data from the DP.
 
 **Input**
 ```json
@@ -180,7 +176,7 @@ This is used to retrieve actual user data from   the DP.
   "model_name": "success1",
   "data_description": [
     {
-      "type": "xAPI",
+      "datatype": "xAPI",
       "queries": [
         {
           "verbs": {
@@ -214,6 +210,7 @@ This is used to retrieve actual user data from   the DP.
 ```
 
 In this example, we query all the xAPI documents with accessed activity for more than 10 minutes, as well as activities with success information.
+Note the queries are mongoish ; this is given as example, but might evolve later. 
 
 ℹ️ If no `queries` is specified, any data with the given type should be queried.
 
@@ -467,7 +464,7 @@ To be detailed.
 
 #### Protocol execution test
 
-We describe the steps for a complete test of the protocol execution to train an AI model.   
+We describe the steps for a complete test of the protocol execution to train an AI model.
 
 **Setup**
   * 2 running DA servers
@@ -529,7 +526,8 @@ Execution plan:
 
 * Request endpoint start with execution plan, e.g. `https://dissecml.test.cozycloud.cc/run/`
   * Expected response: 200 OK
-* Wait for enough time, e.g. 5 minute
+* Wait for enough time for the protocol to complete: by design, this test cannot be realtime.
+The protocol triggers several computations on different nodes, with many network exchanges. Depending on the data volume, the number of nodes,the bandwith and the processing power, the protocol can take from minutes to hours to converge. For testing purpose, the expected convergence time should be in a magnitude of minutes.
 * Request endpoint result on the execution plan id e.g. `https://dissecml.test.cozycloud.cc/run/execution_plan_test`
 
 **Expected result**
