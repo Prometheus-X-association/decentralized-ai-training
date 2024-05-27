@@ -27,17 +27,14 @@ to access, for reasons of privacy, security, and regulation.
 
 ## Requirements
 
-- The Catalog should build an execution plan and publish the AI training plan 
-- The Consent BB should be able to process user consent to be DP for a plan
-- The Consent BB should provide the list of DP URLs for a given plan
-- The BB should build - The aggregation tree including DP and DA
-- The BB should retrieved user data
-- The Edge AI Translator BB should translate user data w.r.t - The execution plan 
-- The BB should allow DP to securely train AI model
-- The BB should allow Data Aggregators (DA) to compute from DP work
-- The BB should eventually produce a trained AI model
-- The BB should be able to measure model accuracy
-- The Trustworthy AI BB should be able to evaluate the model
+- [DEP] The Catalog should build an execution plan including the AI plan 
+- [DEP] The Consent BB should be able to process user consent to be DP for a given plan
+- [DEP] The Consent BB should provide the list of DP URLs for a given plan
+- [FUNC] The BB should allow DP to securely train AI model based on an execution plan
+- [FUNC] The BB should allow Data Aggregators (DA) to compute from DP work
+- [FUNC] The BB should eventually produce a trained AI model
+- [FUNC] The BB should be able to measure model accuracy
+- [SEC] The Trustworthy AI BB should be able to evaluate the model
 
 
 ## Integrations
@@ -60,8 +57,7 @@ to access, for reasons of privacy, security, and regulation.
 
 ### Integrations via Connector
 
-_What other BBs does this BB integrate with intermediated by the connector?
-Why?_
+The connector should be used to retrieve relevant data from Data Providers during the training protocol.
 
 
 ## Relevant Standards
@@ -562,4 +558,31 @@ An example tutorial is available [here](https://github.com/ftsrg-edu/swsv-labs/w
 
 ### UI test (where relevant)
 
-_Candidates for tools that can be used to implement the test cases: Selenium_
+Does not apply
+
+
+## Partners & roles
+
+### Cozy Cloud
+
+- Protocol and architecture conception 
+- Protocol and architecture implementation
+- Testing infrastructure
+
+
+### Loria
+
+- Define an exhaustive list of AI models that can be used through conducting a state-of-the-art review
+- Reputation score strategy based on game theory
+
+### UoK
+
+- Expertise on mapping to Data Space Reference Architecture Models 
+
+### UiO
+
+- Expertise on federated learning protocols
+
+## Usage in the dataspace
+
+This BB will use the Decentralized AI Training Service Chain.
