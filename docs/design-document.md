@@ -422,22 +422,60 @@ The last DA parent is the Main Data Aggregator (MDA). Once all the expected inte
 The final model is then sent and saved to the Catalog and can be retrieved by the AI provider.
 
 
-![alt text](image.png)
-
-
 
 ## Configuration and deployment settings
 
-_What configuration options does this BB have?
-What is the configuration format?
-Provide examples.
-How is the component logging the operations? What are the error scenarios? What are the limits in terms of usage (e.g. number of requests, size of dataset, etc.)?_
+
+The main configuration of this BB in specified by the execution plan. An example is defined [here](#execution-plan).
+
+Each component of this BB will have to handle specific configuration, logging and error handling, notably the Orchestrator and the Data Aggregators.
+The expected formats will be JSON for API settings and YAML for deployment settings.
+
+The decentralized nature of this BB make it challenging for debugging failing scenarios, as there will be no centralized logging, but the Orchestrator component is typically made to facilitate this in the first iterations of this BB, thanks to it central role.
+
+It is also envisioned to introduce a configuration option to allow each component of this BB to send its logs to the Orchestrator, as a debug option.
+
+### Error scenarios
+
+#### Missing shares
+
+In this decentralized BB, many errors could occur, many of them being linked to network communications and particularly between Data Processors (DP) and Data Aggregators (DA).
+
+One should understand that by design, the protocol requires that each DA on the same tree level receives exactly the same number of share, from the same children (to simplify, will we have only 2 levels at first, 2 leafs DA and one root DA, also called MDA).
+
+As any node could fail at any time, this is quite a complicated think to handle. In fact, there is an academic publication mainly focused on this issue: https://dl.acm.org/doi/10.1145/3603719.3603730
+
+We will rely on this work to implement a mechanism where DA on the same tree level are able to periodically sync with each others, and reach a consensus on a shares list, to perform the aggregation and pass the results to the upper tree level.
+
+When it is impossible to converge, typically because of missing shares, all the execution plan should be discarded. To do it, some garbage collector will periodically check the DA status and decide whether or not the execution plan can converge. If not, a cleanup will be made and the Orchestrator will be informed on this failure.
+
+There will be a status API endpoint that can be queried on the Orchestrator to know about an execution plan status at any time.
+
+The Orchestrator will also have a garbage collector mechanism, in case not enough shares are produced from the DP for an execution plan.
+
+#### Integrity failures
+
+If there are any computational errors on the training or aggregation part, the final model might be meaningless, even if the whole protocol successfully converged.
+
+This is not something that can be entirely prevented, but several actions can envisioned to minimize the risks.
+
+First, it is necessary to evaluate the produced model. This will be done by the [BB feature](#featuresmain-functionalities): "Model accuracy and trustworthiness could be evaluated".
+
+Then, each computational step should have an independant integrity check. This includes:
+- Raw data retrieval
+- AI training
+- DP share generation
+- DA share aggregation
+
+A failing integrity check should handle an error that will be treated specifically depending on where it happens.
+
 
 
 ## Third Party Components & Licenses
 
-_Does this BB rely on any 3rd-party components?
-See also the "EDGE third party/background components" spreadsheet.
+This BB will partially rely on the [Cozy stack](https://github.com/cozy/cozy-stack).
+
+The code will be released in AGPLv3.
 
 
 ## Implementation Details
