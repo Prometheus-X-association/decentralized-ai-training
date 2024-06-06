@@ -57,14 +57,12 @@ to access, for reasons of privacy, security, and regulation.
 
 ### Integrations via Connector
 
-The connector should be used to retrieve relevant data from Data Providers during the training protocol.
+The connector might be used to retrieve relevant data from Data Providers during the training protocol (to be clarified).
 
 
 ## Relevant Standards
 
 ### Data Format Standards
-
-By design, the AI training should be generic enough to support 
 
 The expected data format for user data is xAPI for learning records.
 Additionally, useful metadata about the learning records could be used, e.g. the number of records, their frequency, ...
@@ -72,6 +70,8 @@ Additionally, useful metadata about the learning records could be used, e.g. the
 The PLRS is expected to provide correctly formatted data, thanks to the LRC component.
 
 The AI model should be serialized in standard format such as pickle or joblib. 
+
+Each internal communication in this BB should be formatted in JSON.
 
 
 ### Mapping to Data Space Reference Architecture Models
@@ -84,6 +84,10 @@ _Mapping to [DSSC](https://dssc.eu/space/DDP/117211137/DSSC+Delivery+Plan+-+Summ
 
 ### AI training plan
 
+
+`POST /training_plan`
+
+**Input**
 ```json
 {
   "id": "training_1",
@@ -96,12 +100,108 @@ _Mapping to [DSSC](https://dssc.eu/space/DDP/117211137/DSSC+Delivery+Plan+-+Summ
 }
 ```
 
+**Output**
+
+```
+HTTP/1.1 200 OK
+{
+  "ok": true
+}
+```
+
 ℹ️ The algorithms to contribute should be wrapped into the actual model. An `update_model` method should be defined defining how the data should be processed and the model weights updated.
 
 ℹ️ Due to size constraints, the model is not directly provided, but can be downloaded from the given URL.
 
 
 ### Execution plan
+
+
+`POST /execution_plan`
+
+**Input**
+```json
+  "training_plan": {
+    // training plan content
+  }
+```
+
+**Output**
+```json
+HTTP/1.1 201 Created
+{
+  "id": "exec_1",
+  ...
+}
+```
+
+`PUT /execution_plan/<id>/aggregators`
+
+**Input**
+```json
+{
+  "aggregators": {
+    [
+      {
+        "url": "https://aggregator1.cozycloud.cc",
+        "org": "Cozy Cloud"
+      },
+      {
+        "url": "https://aggregator2.cozycloud.cc",
+        "org": "Cozy Cloud"
+      },
+      {
+        "url": "https://ai-aggregator.prometheus-x.org",
+        "org": "PTX"
+      }
+    ],
+  }
+}
+```
+
+**Output**
+HTTP/1.1 200 OK
+```json
+{
+  "id": "exec_1",
+  // execution plan content
+  ...
+}
+```
+
+
+`PUT /execution_plan/<id>/processors`
+
+**Input**
+```json
+{
+  "processors": [
+    {
+      "url": "https://alice.mycozy.cloud"
+    },
+    {
+      "url": "https://bob.mycozy.cloud"
+    },
+    {
+      "url": "https://supercloud.com/charlie"
+    },
+    ...
+  ]
+}
+```
+
+**Output**
+HTTP/1.1 200 OK
+```json
+{
+  "id": "exec_1",
+  // execution plan content
+  ...
+}
+```
+
+#### Complete execution plan
+
 
 ```json
 {
@@ -143,6 +243,9 @@ _Mapping to [DSSC](https://dssc.eu/space/DDP/117211137/DSSC+Delivery+Plan+-+Summ
 ℹ️ The computation plan include the training plan as well as the aggregation tree.
 The aggregation tree is composed of data aggregators (DA) and data processors (DP). The DA should be operated by trustful organizations willing to provide infrastructure support, while the DP are users endpoints.
 
+ℹ️ The execution is actually built in several steps to first add the training plan
+
+
 
 ### Output AI model
 
@@ -164,7 +267,7 @@ Additional metadata such as the number of contributors (DP) can be provided.
 
 ### Data query
 
-This is used to retrieve actual user data from the DP.
+This is a data query example, to retrieve actual user data from the DP.
 
 **Input**
 ```json
@@ -581,6 +684,8 @@ The protocol triggers several computations on different nodes, with many network
 
 The timestamp is when the new model is produced, so it *must* be greater than the timestamp at the start of the test.
 
+ℹ️ Note this test does not validate the model correctness.
+
 
 
 ### Unit tests
@@ -611,11 +716,15 @@ Does not apply
 ### Loria
 
 - Define an exhaustive list of AI models that can be used through conducting a state-of-the-art review
+- Model evaluation
 - Reputation score strategy based on game theory
 
 ### UoK
 
 - Expertise on mapping to Data Space Reference Architecture Models 
+- Evaluation on protocol security impact 
+- Evaluation of federated learning in Data Space context
+
 
 ### UiO
 
@@ -623,4 +732,4 @@ Does not apply
 
 ## Usage in the dataspace
 
-This BB will use the Decentralized AI Training Service Chain.
+This BB will be a core component of the Decentralized AI Training Service Chain.
