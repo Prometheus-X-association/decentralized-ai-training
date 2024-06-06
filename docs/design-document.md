@@ -722,9 +722,10 @@ Does not apply
 ### UoK
 
 - Expertise on mapping to Data Space Reference Architecture Models 
-- Evaluation on protocol security impact 
 - Evaluation of federated learning in Data Space context
-
+  - Privacy & security aspects
+  - Communication overhead
+  
 
 ### UiO
 
