@@ -313,6 +313,114 @@ Note the queries are mongoish ; this is given as example, but might evolve later
 
 ℹ️ If no `queries` is specified, any data with the given type should be queried.
 
+### Training example
+
+Let's take a dummy example of an actual training, to demonstrate the exchanged data.
+
+Assume a classification AI model, to classify user interest from learning traces history.
+This model is a Naive Bayes classifier, that can be seen as a matrix with categories and token vocabulary, where the weights represents the number of occurences of tokens for a category.
+
+The AI provider initializes the model with categories and the tokens vocabulary. To simplify, there are only 3 categories and 3 tokens : 
+
+```python
+vocabulary = ["AI", "UX", "Javascript"]
+categories = ["Dev", "UX Design", "Data Science"]
+```
+
+All the weights are initialized to 0:
+
+<img src="./schemas/init_matrix.png" alt="Init model" width="300"/> 
+
+
+Now, let's say there are 2 Data Processors (DP), 2 Data Aggregator (DA) and a Main Data Aggregator (MDA).
+
+#### Data processor
+
+When the DP does the training, it executes an `update_model` method provided by the AI provider. For instance: 
+
+```python
+def update_model(xapi_documents, nb_model):
+    """
+    Updates a naive Bayes model with new documents.
+
+    Parameters:
+    - xapi_documents: List of xAPI documents.
+    - nb_model: A naive Bayes model initialized with specific vocabulary and categories.
+
+    Each xAPI document is processed to extract relevant tokens and the document's category.
+    The model is then updated by summing the occurrence of these tokens under their respective categories.
+    """
+
+    vocabulary = ["AI", "UX", "Javascript"]
+    categories = ["Dev", "UX Design", "Data Science"]
+
+    for document in xapi_documents:
+        # Function to extract tokens related to categories from xAPI documents.
+        tokens, category = extract_tokens_and_category(document)
+
+        # Update the model's counts for each token in the document
+        for token in tokens:
+            if token in vocabulary and category in categories:
+                nb_model[token][category] += 1
+
+    save_model(nb_model)
+
+```
+
+After training, the matrix weights are updated:
+
+
+<img src="./schemas/matrix_update1.png" alt="DP1 update" width="300"/> 
+<img src="./schemas/matrix_update2.png" alt="DP2 update" width="284"/>
+
+Then, each DP executes a `make_shares` method, e.g. :
+
+```python
+import numpy as np
+
+def make_shares(model_matrix, n_splits):
+    """
+    Split a naive Bayes model matrix into multiple parts with added noise,
+    such that the sum of these parts equals the original matrix.
+
+    Parameters:
+    - model_matrix (numpy.ndarray): The original model matrix.
+    - n_splits (int): Number of splits (and thus number of noisy matrices to create).
+
+    Returns:
+    - list of numpy.ndarray: List of noisy matrices.
+    """
+    # Generate a noise matrix of the same shape as the model matrix
+    noise_matrix = np.random.randn(*model_matrix.shape)
+
+    shares = []
+    for _ in range(n_splits):
+        # Create random noise
+        noise = noise_matrix * np.random.rand()
+        # Subtract the generated noise from the noise matrix to balance out in the final sum
+        noise_matrix -= noise
+        # Add the current noise to a fraction of the original matrix
+        shares.append(model_matrix / n_splits + noise)
+    return shares
+
+```
+
+Each share is then sent to a DA. 
+
+
+#### Data Aggregators
+
+Each DA computes the aggregation of the received shares, i.e. the sum of matrix weights. Then it sends the result to the MDA.
+
+The MDA then computes the final aggregation with a sum. Thanks to it, the noise injected by each DP is removed, and the final model is revealed.
+
+
+#### Complete training example
+
+![training example](./schemas/training_example.png)
+
+
+
 
 ## Architecture
 
@@ -523,6 +631,10 @@ Then, it computes the intermediate aggregate from the shares of each DP, and sen
 The last DA parent is the Main Data Aggregator (MDA). Once all the expected intermediate aggregates are received, it triggers the final aggregation. Depending on the model, it may simply sum as for the DAs (typically sufficient for a naive bayes model), or compute an average, thanks to the sum of weights + the sum of contributions.
 
 The final model is then sent and saved to the Catalog and can be retrieved by the AI provider.
+
+
+
+
 
 
 
