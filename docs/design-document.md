@@ -317,6 +317,8 @@ Note the queries are mongoish ; this is given as example, but might evolve later
 
 Let's take a dummy example of an actual training, to demonstrate the exchanged data.
 
+ℹ️ It might be useful for the reader to take a look at the [architecture section](#architecture), as the overall concepts are explained there.
+
 Assume a classification AI model, to classify user interest from learning traces history.
 This model is a Naive Bayes classifier, that can be seen as a matrix with categories and token vocabulary, where the weights represents the number of occurences of tokens for a category.
 
@@ -419,6 +421,8 @@ The MDA then computes the final aggregation with a sum. Thanks to it, the noise 
 
 ![training example](./schemas/training_example.png)
 
+
+ℹ️ Please note this is a dummy example: in practice, there are never 2 nodes only to contribute. In this case, the DA would simply refuse to compute the aggregation as there would have not enough contributors to enforce diversity and anonymization. 
 
 
 
@@ -550,7 +554,7 @@ sequenceDiagram
 
 Once it receives the execution plan, the first thing to do for a DP is to query user data. For this, the DP will request the Data Querier (DQ) and transmit the data format included in the execution plan.
 
-ℹ️  Depending on the edge architecture, the DQ could actually be part of the DP.
+ℹ️ Depending on the edge architecture, the DQ could actually be part of the DP.
 
 The data format is then interpreted by the DQ to be translated into a data query. Thanks to his, the user data is queried and retrieved by the DQ.
 Then, the data is translated, if needed, in the expected format. 
@@ -834,9 +838,9 @@ Does not apply
 ### UoK
 
 - Expertise on mapping to Data Space Reference Architecture Models 
-- Evaluation of federated learning in Data Space context
+- Evaluation of federated learning protocol in Data Space context:
   - Privacy & security aspects
-  - Communication overhead
+  - Communication overhead induced by decentralization
   
 
 ### UiO
