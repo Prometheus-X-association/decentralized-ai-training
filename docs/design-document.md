@@ -396,13 +396,15 @@ def make_shares(model_matrix, n_splits):
     noise_matrix = np.random.randn(*model_matrix.shape)
 
     shares = []
-    for _ in range(n_splits):
-        # Create random noise
-        noise = noise_matrix * np.random.rand()
-        # Subtract the generated noise from the noise matrix to balance out in the final sum
-        noise_matrix -= noise
-        # Add the current noise to a fraction of the original matrix
-        shares.append(model_matrix / n_splits + noise)
+    for _ in range(n_splits - 1):
+      # Create each share by extracting some random noise from the noise matrix
+      noise = noise_matrix * np.random.rand()
+      noise_matrix -= noise
+      shares.append(model_matrix / n_splits + noise)
+
+    # Ensure the last share sums up with the noise matrix
+    shares.append(model_matrix / n_splits + noise_matrix)
+
     return shares
 
 ```
