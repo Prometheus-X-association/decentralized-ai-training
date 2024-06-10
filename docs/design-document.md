@@ -802,8 +802,7 @@ The protocol triggers several computations on different nodes, with many network
 
 The timestamp is when the new model is produced, so it *must* be greater than the timestamp at the start of the test.
 
-ℹ️ Note this test does not validate the model correctness.
-
+ℹ️ Note this test does not validate the model correctness. For this, internal tests are expected in each component. As mentioned in the [errors scenarios](#error-scenarios) section, there are different cases that could result in integrity failures, which should be handled by the BB components and validated through unit tests.
 
 
 ### Unit tests
