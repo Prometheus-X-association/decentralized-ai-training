@@ -805,14 +805,14 @@ The timestamp is when the new model is produced, so it *must* be greater than th
 ℹ️ Note this test does not validate the model correctness. For this, internal tests are expected in each component. As mentioned in the [errors scenarios](#error-scenarios) section, there are different cases that could result in integrity failures, which should be handled by the BB components and validated through unit tests.
 
 
-### Unit tests
+### Internal unit tests
 
-_Here specify the test cases for the components inside the BB.  
+_Here specify the test cases for the units inside the BB.  
 Candidates for tools that can be used to implement the test cases: JUnit, Mockito, Pytest._
 
-### Integration tests
+### Component-level testing
 
-_Here specify how to test the integration of the components inside the BB.  
+_Here specify how to test this component/BB as a whole. This is similar to how other BBs will use this component.  
 Candidates for tools that can be used to implement the test cases: K6, Postman, stepci, Pact  
 An example tutorial is available [here](https://github.com/ftsrg-edu/swsv-labs/wiki/2b-Integration-testing)._
 
