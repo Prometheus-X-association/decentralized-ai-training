@@ -458,6 +458,7 @@ The MDA then computes the final aggregation with a sum. Thanks to it, the noise 
 The main roles in the architecture are the following:
 
 - Data Processor (DP): a node with authorized access to user data. This is where model updates are computed.
+- Data Provider: an organization with user data. The Data Provider typically provides data to the Data Processor, but might actually be the same actor. Note that in the following, the Data Provider is sometimes merged into the Data Processor, by simplicity. 
 - Data Aggregator (DA): a server node run by a trusted party that is able to receive partial model updates and perform aggregations on it.
 - Main Data Aggregator (MDA): a specialized DA that computes the final model aggregation including all the DP contributions.
 - AI provider: an organization that publishes an AI training plan
@@ -471,6 +472,10 @@ Here is an overview of the architecture
 ### Build Execution plan
 
 ![Build Execution Plan](./schemas/build_execution_plan.png)
+
+This schema depicts the creation of an execution plan. Please note that the steps are not necessarily sequential: for example, a Data Provider could join a plan through an existing contract. 
+Likewise, the execution plan is incrementally and asynchronously increased with user consents.
+
 
 ### AI Training
 
