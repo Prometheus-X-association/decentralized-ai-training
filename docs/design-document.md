@@ -79,6 +79,31 @@ Each internal communication in this BB should be formatted in JSON.
 _Mapping to [DSSC](https://dssc.eu/space/DDP/117211137/DSSC+Delivery+Plan+-+Summary+of+assets+publication) or [IDS RAM](https://docs.internationaldataspaces.org/ids-knowledgebase/v/ids-ram-4/)_
 
 
+#### DSSC
+
+This building blocks has a mapping with the following DSSC building blocks:
+
+- [Value-Added Service](https://dssc.eu/space/BVE/357076468/Value-Added+Services)
+  - The building block finality is to allow the training of AI models and bring value over user data. 
+- [Access & Usage Policies Enforcement](https://dssc.eu/space/BVE/357075567/Access+%26+Usage+Policies+Enforcement)
+  - This building block ensures that users consents to give access to their data, only on the purpose of an execution plan
+  - The accessed data can be a subset of the overall data: only the data necessary for the training.
+  - The Data Processor must provide strong security guarantees to the Data Provider, expressed in through a contract  
+- [Provenance & Traceability ](https://dssc.eu/space/BVE/357075283/Provenance+%26+Traceability)
+  - It is important in this building block to have a support for traceability and enable clear logging for the different steps.
+  - Each role is transparent and clearly specified, ensuring provenance tracking.  
+
+#### IDS-RAM
+
+- [Big Data and Artificial Intelligence](https://docs.internationaldataspaces.org/ids-knowledgebase/v/ids-ram-4/context-of-the-international-data-spaces/2_1_data-driven-business_ecosystems/2_7_big_data_and_artificial_intelligence)
+  - This building block enables AI training and application leveraging AI models.
+- There are similar concepts with this building blocks in the IDS-RAM Process layer, notably:
+  - [Data Offering](https://docs.internationaldataspaces.org/ids-knowledgebase/v/ids-ram-4/layers-of-the-reference-architecture-model/3-layers-of-the-reference-architecture-model/3_4_process_layer/3_4_2_data_offering)
+  - [Contract Negotiation](https://docs.internationaldataspaces.org/ids-knowledgebase/v/ids-ram-4/layers-of-the-reference-architecture-model/3-layers-of-the-reference-architecture-model/3_4_process_layer/3_4_3_contract_negotiation)
+  - [Exchanging Data](https://docs.internationaldataspaces.org/ids-knowledgebase/v/ids-ram-4/layers-of-the-reference-architecture-model/3-layers-of-the-reference-architecture-model/3_4_process_layer/3_4_4_exchanging_data)
+
+
+
 ## Input / Output Data
 
 
