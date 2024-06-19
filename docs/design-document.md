@@ -765,21 +765,6 @@ Execution plan:
     "model_id": "model_test",
     "target_data": {
       "type": "xAPI",
-      "queries": [
-        {
-          "verbs": {
-            "$in": ["https://w3id.org/xapi/netc/verbs/accessed"]
-          }
-          "result.duration": {
-            "$gt": "600"
-          }
-        },
-        {
-          "result.success": {
-            "$exists": true
-          }
-        },
-      ]
     },
     "model_description": "Model test",
     "base_model": "https://dissecml.test.cozycloud.cc/base_model_test",
@@ -831,6 +816,10 @@ The protocol triggers several computations on different nodes, with many network
 ```
 
 The timestamp is when the new model is produced, so it *must* be greater than the timestamp at the start of the test.
+
+ℹ️ The produced model is not directly provided as it can be quite big. Rather it is saved on a URL. 
+Note the model itself roughly consists of a set of parameters shaping a specific model type (neural network, regression, classification, etc).
+The model should be exported in an interoperable format, such as pickle or joblib.
 
 ℹ️ Note this test does not validate the model correctness. For this, internal tests are expected in each component. As mentioned in the [errors scenarios](#error-scenarios) section, there are different cases that could result in integrity failures, which should be handled by the BB components and validated through unit tests.
 
