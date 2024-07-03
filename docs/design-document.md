@@ -1,8 +1,8 @@
 # Decentralized AI training BB – Design Document
 
-The goal is to be able to train AI models, without the need to centralize training data. This is particularly virtuous in the case of training on personal data, which is complicated to centralize for reasons of privacy, security, and regulation. 
+The goal of this building block is to allow a decentralized training of AI models, i.e. without the need to centralize training data. This is particularly virtuous in the case of training on personal data, which is complicated to centralize for reasons of privacy, security, and regulation. 
 
-We present here an architecture allowing decentralized AI training on nodes, while ensuring trust, accuracy and trustworthiness.
+Our approach relies on the concept of [federated learning](https://research.google/blog/federated-learning-collaborative-machine-learning-without-centralized-training-data/), by introducing a decentralized governance in such a way that no central actor should have the possibility to access or infer training data.
 
 
 ## Technical usage scenarios & Features
@@ -10,16 +10,18 @@ We present here an architecture allowing decentralized AI training on nodes, whi
 
 ### Features/main functionalities
 
-- AI provider publishes an AI computation plan to the Catalog/Registry including initialized AI model, target data, and how data should be used 
-- An execution plan is made based on the computation plan, including the involved Data Aggregators, responsible for anonymous computation
-- Once enough users gave consent to participate, the execution plan is run and eventually produce a trained AI model
-- Contributing nodes could be selected or excluded depending on a reputation score
+- An AI provider publishes an AI training plan to the Catalog including an initialized AI model, target data, and how data should be used. Based on this, a contract can be defined with Data Providers, to provide training data, and Data Aggregators, to provide the aggregation services.
+- An execution plan is computed, based on the training plan, the Data Providers and the Data Aggregators.
+- Once enough users gave consent to participate, the execution plan is run and eventually produce a trained AI model: this is the primary building block feature.
+- Contributing nodes might be selected or excluded depending on a reputation score.
 - Model accuracy and trustworthiness could be evaluated
 
 ### Technical usage scenarios
 
-Enable the training of AI models without disclosing user data at any time. 
-A decentralized protocol allows to make computations directly to the data source, and share AI model updates, without the need of a central actor.
+A user gives consent to participate to a decentralized computation. 
+Then, the protocol will leverage the user data to make a local training of an AI model, and the result is shared to Aggregators in such a way that no data can be revealed. Then, multiple aggregations from all the local training converge to reveal the trained model.
+
+Thus, this protocol allows to make computations directly to the data source, and share AI model updates, without the need of a central actor.
 
 Thanks to this, one can train AI models on a huge variety of user data, that is normally very hard 
 to access, for reasons of privacy, security, and regulation. 
@@ -28,7 +30,7 @@ to access, for reasons of privacy, security, and regulation.
 ## Requirements
 
 - [DEP] The Catalog should build an execution plan including the AI plan 
-- [DEP] The Consent BB should be able to process user consent to be DP for a given plan
+- [DEP] The Consent BB should be able to process user consent to be Data Processor (DP) for a given plan
 - [DEP] The Consent BB should provide the list of DP URLs for a given plan
 - [FUNC] The BB should allow DP to securely train AI model based on an execution plan
 - [FUNC] The BB should allow Data Aggregators (DA) to compute from DP work
@@ -53,11 +55,13 @@ to access, for reasons of privacy, security, and regulation.
 
 - *Trustworthy AI*. The AI model should be trustworthy
 
-- *PLRS*. The PLRS provides user data and infrastructure for Data Processors
+- *PLRS*. The PLRS can act as a Data Provider, and provide user data and infrastructure for Data Processors.
 
 ### Integrations via Connector
 
-The connector might be used to retrieve relevant data from Data Providers during the training protocol (to be clarified).
+The connector might be used as a entry point for Data Providers, to retrieve relevant data during the training protocol (to be clarified).
+
+However, this entry point could be directly implemented by the Data Provider as well.
 
 
 ## Relevant Standards
@@ -136,7 +140,7 @@ HTTP/1.1 200 OK
 
 ℹ️ The algorithms to contribute should be wrapped into the actual model. An `update_model` method should be defined defining how the data should be processed and the model weights updated.
 
-ℹ️ Due to size constraints, the model is not directly provided, but can be downloaded from the given URL.
+ℹ️ Due to size constraints, the model is not directly provided, but can be downloaded from the given URL. The supported model format should be pickle or joblib.
 
 
 ### Execution plan
@@ -268,7 +272,7 @@ HTTP/1.1 200 OK
 ℹ️ The computation plan include the training plan as well as the aggregation tree.
 The aggregation tree is composed of data aggregators (DA) and data processors (DP). The DA should be operated by trustful organizations willing to provide infrastructure support, while the DP are users endpoints.
 
-ℹ️ The execution is actually built in several steps to first add the training plan
+ℹ️ The execution is actually built in several steps, to first add the training plan
 
 
 
@@ -301,6 +305,7 @@ This is a data query example, to retrieve actual user data from the DP.
   "data_description": [
     {
       "datatype": "xAPI",
+      // Exact syntax to be specified accordingly with PDC.
       "queries": [
         {
           "verbs": {
@@ -334,7 +339,7 @@ This is a data query example, to retrieve actual user data from the DP.
 ```
 
 In this example, we query all the xAPI documents with accessed activity for more than 10 minutes, as well as activities with success information.
-Note the queries are mongoish ; this is given as example, but might evolve later. 
+Note the queries are mongoish ; this is given as example, but might evolve later, w.r.t discussions with the PDC team. 
 
 ℹ️ If no `queries` is specified, any data with the given type should be queried.
 
@@ -342,7 +347,7 @@ Note the queries are mongoish ; this is given as example, but might evolve later
 
 Let's take a dummy example of an actual training, to demonstrate the exchanged data.
 
-ℹ️ It might be useful for the reader to take a look at the [architecture section](#architecture), as the overall concepts are explained there.
+ℹ️ It might be useful for the reader to first take a look at the [architecture section](#architecture), as the overall concepts are explained there.
 
 Assume a classification AI model, to classify user interest from learning traces history.
 This model is a Naive Bayes classifier, that can be seen as a matrix with categories and token vocabulary, where the weights represents the number of occurences of tokens for a category.
@@ -398,9 +403,9 @@ After training, the matrix weights are updated:
 
 
 <img src="./schemas/matrix_update1.png" alt="DP1 update" width="300"/> 
-<img src="./schemas/matrix_update2.png" alt="DP2 update" width="284"/>
+<img src="./schemas/matrix_update2.png" alt="DP2 update" width="290"/>
 
-Then, each DP executes a `make_shares` method, e.g. :
+Then, each DP executes a `make_shares` method, e.g.:
 
 ```python
 import numpy as np
@@ -460,6 +465,8 @@ The main roles in the architecture are the following:
 - Data Processor (DP): a node with authorized access to user data. This is where model updates are computed.
 - Data Provider: an organization with user data. The Data Provider typically provides data to the Data Processor, but might actually be the same actor. Note that in the following, the Data Provider is sometimes merged into the Data Processor, by simplicity. 
 - Data Aggregator (DA): a server node run by a trusted party that is able to receive partial model updates and perform aggregations on it.
+- Orchestrator: it is run by the DissecML Service and act as a proxy to dispatch protocol requests to simplify interactions and does not store any data. It is also useful for logging and debugging.
+Note this role could eventually disappear in the future, but we expect it to be precious in this project to keep track of exchanges, handle errors, etc.
 - Main Data Aggregator (MDA): a specialized DA that computes the final model aggregation including all the DP contributions.
 - AI provider: an organization that publishes an AI training plan
 - Catalog: it stores and publishes the AI training plans  
@@ -467,7 +474,6 @@ The main roles in the architecture are the following:
 - Users: they express their explicit consent to contribute to an AI training plan 
 
 
-Here is an overview of the architecture
 
 ### Build Execution plan
 
@@ -481,10 +487,14 @@ Likewise, the execution plan is incrementally and asynchronously increased with 
 
 ![AI Training](./schemas/ai_training.png)
 
+This shows a complete AI training, starting from the catalog's execution plan, to the saving of the trained model, back to the catalog.
+
 
 ### Aggregation tree
 
 ![Aggregation Tree](./schemas/aggregation_tree.png)
+
+This is the shape of an aggregation tree, including Data Processors and Data Aggregators.
 
 ## Dynamic Behaviour
 
@@ -495,30 +505,36 @@ An AI Provider requests the Catalog to publish an AI training plan. It includes:
 
 - Initialized AI model
 - The data format to use for training
-- Algorithms to contribute
+- Algorithms to contribute  
 - A user-friendly description
 
 ```mermaid
 sequenceDiagram
     participant AIProvider as AI Provider
     participant Catalog
+    participant DP1 as Data Provider
     participant DA1 as DA
     
     AIProvider->>Catalog: Publish AI training plan
+    AIProvider->>Catalog: Create contract
     DA1->>Catalog: Register
+    DP1->>Catalog: Register
     Catalog->>Catalog: Check enough DA are registered
     Catalog->>Catalog: Build aggregation tree
     Catalog->>Catalog: Publish plan
 ```
 
-On the other side, Data Aggregators (DA) register to be part of an execution plan. This execution plan includes an Aggregation Tree,  describing how the training data should be split, and who should be MDA, i.e. the last aggregator producing the final model.
+On the other side, Data Aggregators (DA) and Data Providers register to be part of an execution plan, through a contract. This execution plan includes an Aggregation Tree, describing how the training data should be split, and who should be MDA, i.e. the last aggregator producing the final model.
 Once there are enough registered DA, the Catalog computes the Aggregation Tree. 
-  
+
+
 ℹ️ The Aggregation Tree is not complete yet, as the leafs, i.e. the DP, are not known yet. 
+ℹ️ The Data Provider is not part of the aggregation tree, but will provide DP
 
 Then, the Catalog publishes the plan. A user should be able to consent to this plan to become a Data Processor (DP).
 
-Number of DA
+#### Number of DA
+
 The minimal number of registered DA to guarantee security is 3, one of them being the MDA. 
 Increasing the number of DA offer better security, as it reduces the collusion impact (i.e. 2 corrupted DA that work together to reveal model updates) as well as server loads (less work for each DA).
 On the other hand, it also increases complexity, network load and risk of failures. 
@@ -547,7 +563,7 @@ sequenceDiagram
 
 The execution starts by the Catalog sending the execution plan to all the DPs and DAs.
 
-ℹ️ The DPs are added to the Aggregation Tree as leafs. They are transmitted to the DAs, that need to know which DP contribute. However, this information is not transmitted to the DPs as it is not required and might hurt privacy. 
+ℹ️ The DPs are added to the Aggregation Tree as leafs. They are transmitted to the DAs, that need to know which DP contribute. This implies that a DP participation is not considered as private. 
 
 ```mermaid
 
@@ -561,10 +577,7 @@ sequenceDiagram
   C ->> DP: Send execution plan
   C ->> DA1: Send execution plan
   C ->> DA2: Send execution plan
-  DP ->> DQ: Send data description
-  DQ ->> DQ: Convert into query
-  DQ ->> DQ: Run query
-  DQ ->> DP: Send user data
+  DP ->> DP: Query data
   DP ->> DP: Run data training
   DP ->> DP: Update model 
   DP ->> DP: Split model in shares
@@ -584,15 +597,10 @@ sequenceDiagram
 
 ### Query data
 
-Once it receives the execution plan, the first thing to do for a DP is to query user data. For this, the DP will request the Data Querier (DQ) and transmit the data format included in the execution plan.
 
-ℹ️ Depending on the edge architecture, the DQ could actually be part of the DP.
+Once it receives the execution plan, the first thing to do for a DP is to query user data.
 
-The data format is then interpreted by the DQ to be translated into a data query. Thanks to his, the user data is queried and retrieved by the DQ.
-Then, the data is translated, if needed, in the expected format. 
-Finally, the data is sent back to the DP.
-
-ℹ️ The Data description format must be understood by all DQ to be correctly interpreted. The translation into a data query is up to each DQ and will depends on their own data API.
+This might be handled directly by the PDC, or by the DP, depending on implementations choices, to be determined. 
 
 
 ### Local Data Processing
@@ -605,7 +613,7 @@ The DP has now:
 - The initialized AI model
 - The algorithms to contribute to the model
 
-ℹ️ The algorithms can (should?) be included direclty into the AI model, e.g. with a pickle format.
+ℹ️ The algorithms are included directly into the AI model through a serialization mechanism e.g. with a pickle format.
 
 Then, the DP can locally train the model based on user data, and update the model weights.  
 
@@ -671,9 +679,6 @@ The final model is then sent and saved to the Catalog and can be retrieved by th
 
 
 
-
-
-
 ## Configuration and deployment settings
 
 
@@ -731,21 +736,16 @@ The code will be released in AGPLv3.
 
 ## Implementation Details
 
-_This is optional: remove this heading if not needed.
-You can add details about implementation plans and lower-level design here._
-
+TBC
 
 ## OpenAPI Specification
 
-_In the future: link your OpenAPI spec here._
+TBC
 
 ## Test specification
 
-_Test definitions and testing environment should be availaible, and the tests should be repeatable._
 
 ### Test plan
-Testing strategy, tools and methods chosen, methods for acceptance criteria.
-To be detailed.
 
 #### Protocol execution test
 
@@ -826,14 +826,12 @@ The model should be exported in an interoperable format, such as pickle or jobli
 
 ### Internal unit tests
 
-_Here specify the test cases for the units inside the BB.  
-Candidates for tools that can be used to implement the test cases: JUnit, Mockito, Pytest._
+TBC
 
 ### Component-level testing
 
-_Here specify how to test this component/BB as a whole. This is similar to how other BBs will use this component.  
-Candidates for tools that can be used to implement the test cases: K6, Postman, stepci, Pact  
-An example tutorial is available [here](https://github.com/ftsrg-edu/swsv-labs/wiki/2b-Integration-testing)._
+The component-level testing is already handled by the test plan. 
+
 
 ### UI test (where relevant)
 
@@ -870,3 +868,5 @@ Does not apply
 ## Usage in the dataspace
 
 This BB will be a core component of the Decentralized AI Training Service Chain.
+
+![service_chain](./schemas/training_service_chain.png)
