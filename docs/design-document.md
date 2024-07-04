@@ -4,7 +4,6 @@ The goal of this building block is to allow a decentralized training of AI model
 
 Our approach relies on the concept of [federated learning](https://research.google/blog/federated-learning-collaborative-machine-learning-without-centralized-training-data/), by introducing a decentralized governance in such a way that no central actor should have the possibility to access or infer training data.
 
-
 ## Technical usage scenarios & Features
 
 
