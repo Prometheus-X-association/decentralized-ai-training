@@ -10,15 +10,17 @@ Our approach relies on the concept of [federated learning](https://research.goog
 ### Features/main functionalities
 
 - An AI provider publishes an AI training plan to the Catalog including an initialized AI model, target data, and how data should be used. Based on this, a contract can be defined with Data Providers, to provide training data, and Data Aggregators, to provide the aggregation services.
-- An execution plan is computed, based on the training plan, the Data Providers and the Data Aggregators.
+- An execution plan is computed by the Catalog, based on the training plan, the Data Providers and the Data Aggregators.
 - Once enough users gave consent to participate, the execution plan is run and eventually produce a trained AI model: this is the primary building block feature.
 - Contributing nodes might be selected or excluded depending on a reputation score.
-- Model accuracy and trustworthiness could be evaluated
+- Model accuracy could be evaluated
 
 ### Technical usage scenarios
 
 A user gives consent to participate to a decentralized computation. 
-Then, the protocol will leverage the user data to make a local training of an AI model, and the result is shared to Aggregators in such a way that no data can be revealed. Then, multiple aggregations from all the local training converge to reveal the trained model.
+Then, the protocol will leverage the user data to make a local training of an AI model. By "local training", we actually mean a way to execute treatments in a edge computing fashion, i.e. where the data resides, ideally. This part might be delegated to the Edge computing building block.
+
+The result of such computation is shared to Aggregators in such a way that no data can be revealed. Then, multiple aggregations from all the local training converge to reveal the trained model.
 
 Thus, this protocol allows to make computations directly to the data source, and share AI model updates, without the need of a central actor.
 
@@ -46,7 +48,7 @@ to access, for reasons of privacy, security, and regulation.
 
 - *Catalog*. The "registry", a new Catalog component, allows to define execution plans to train AI models
 
-- *Contract*. Contract bewteen AI provider, Data Consumer and Data Aggregators to train the model 
+- *Contract*. Contract between differend providers, e.g. AI provider, Data Providers and Data Aggregators, to train the model (see the [different roles involved](#build-execution-plan) in the contract).
 
 - *Consent*. The user gives consent to become a Data Processor, i.e. be part of an execution plan to train AI model on data
 
@@ -54,7 +56,7 @@ to access, for reasons of privacy, security, and regulation.
 
 - *Trustworthy AI*. The AI model should be trustworthy
 
-- *PLRS*. The PLRS can act as a Data Provider, and provide user data and infrastructure for Data Processors.
+- *PLRS*. The PLRS can act as a Data Provider, and provide user data and infrastructure for Data Processors, i.e. the hability to run local training on user data.
 
 ### Integrations via Connector
 
@@ -464,7 +466,7 @@ The main roles in the architecture are the following:
 - Data Processor (DP): a node with authorized access to user data. This is where model updates are computed.
 - Data Provider: an organization with user data. The Data Provider typically provides data to the Data Processor, but might actually be the same actor. Note that in the following, the Data Provider is sometimes merged into the Data Processor, by simplicity. 
 - Data Aggregator (DA): a server node run by a trusted party that is able to receive partial model updates and perform aggregations on it.
-- Orchestrator: it is run by the DissecML Service and act as a proxy to dispatch protocol requests to simplify interactions and does not store any data. It is also useful for logging and debugging.
+- Orchestrator: it is run by the DissecML Service Provider (DissecML is the training protocol name) and act as a proxy to dispatch protocol requests to simplify interactions and does not store any data. It is also useful for logging and debugging. 
 Note this role could eventually disappear in the future, but we expect it to be precious in this project to keep track of exchanges, handle errors, etc.
 - Main Data Aggregator (MDA): a specialized DA that computes the final model aggregation including all the DP contributions.
 - AI provider: an organization that publishes an AI training plan
@@ -516,21 +518,26 @@ sequenceDiagram
     
     AIProvider->>Catalog: Publish AI training plan
     AIProvider->>Catalog: Create contract
-    DA1->>Catalog: Register
-    DP1->>Catalog: Register
+    DA1->>Catalog: Register contract
+    DP1->>Catalog: Register contract
     Catalog->>Catalog: Check enough DA are registered
     Catalog->>Catalog: Build aggregation tree
     Catalog->>Catalog: Publish plan
 ```
 
+
 On the other side, Data Aggregators (DA) and Data Providers register to be part of an execution plan, through a contract. This execution plan includes an Aggregation Tree, describing how the training data should be split, and who should be MDA, i.e. the last aggregator producing the final model.
 Once there are enough registered DA, the Catalog computes the Aggregation Tree. 
 
+ℹ️ It is up to each Data Provider to determine whether or not it is relevant to register itself for this particular training plan, and sign the contract or not.
 
-ℹ️ The Aggregation Tree is not complete yet, as the leafs, i.e. the DP, are not known yet. 
-ℹ️ The Data Provider is not part of the aggregation tree, but will provide DP
+ℹ️ The contract between the AI Provider, Data Provider and DA is an asynchronous process. Also, please note that the DissecML service provider does not appear here by simplicity: as there should be only one Provider at the beginning, their participation in the contract is implied.
 
-Then, the Catalog publishes the plan. A user should be able to consent to this plan to become a Data Processor (DP).
+ℹ️ At this stage, the Aggregation Tree is not complete yet, as the leafs, i.e. the Data Proccesors (DP), are not known yet.
+
+ℹ️ The Data Provider is not part of the aggregation tree itself. Its role is actaully to provide DP, that will be part of the tree.
+
+Then, the Catalog publishes the plan. A user should be able to consent to this plan to become a DP
 
 #### Number of DA
 
@@ -544,6 +551,9 @@ So this is a trade-off to chose between those contraints.
 ### Consent
 
 Once execution plans are published by the Catalog, a user must be able to give consent to be able to contribute.
+The consents should be collected through the PDC of each Data Provider.
+
+
 Once enough consents have been reached (which is a parameter of the execution plan), the Catalog can start the plan by requesting all the DP through their registered URL.
 
 ```mermaid
@@ -714,7 +724,7 @@ If there are any computational errors on the training or aggregation part, the f
 
 This is not something that can be entirely prevented, but several actions can envisioned to minimize the risks.
 
-First, it is necessary to evaluate the produced model. This will be done by the [BB feature](#featuresmain-functionalities): "Model accuracy and trustworthiness could be evaluated".
+First, it is necessary to evaluate the produced model. This will be done by the [BB feature](#featuresmain-functionalities): "Model accuracy could be evaluated".
 
 Then, each computational step should have an independant integrity check. This includes:
 - Raw data retrieval
