@@ -865,6 +865,24 @@ The component-level testing is already handled by the test plan.
 Does not apply
 
 ## Reputation Score 
+
+The use of a reputation mechanism in a decentralized environment such as federated learning is crucial. It can improve the robustness of the system against malicious or low-quality DP, such as those submitting noisy, erroneous or contradictory updates.
+
+The proposed reputation mechanism is based on the decentralized aggregation protocol. Following we propose how we can compute a reputation score : 
+
+- What is the reputation score for DP : A reputation score for each   DP can be defined according to the contribution of its model updates ( local model of DP) to the overall training process. For example, reputation can be linked to accuracy, in other words, the evolution of model performance after the integration of a node's updates (increase or decrease). Or also it can be linked to the similarity between the local and global models parameters (Advantage : no need for test data, challenge :  high dimensionalty of model parameters). 
+
+The main challenge of federated learning is to calculate the reputation score without revealing the raw data or updates from individual models. The following paragraph describes the mechanism linked to accuracy and the use of test data. At t=0, all the DP are assigned a neutral reputation score. 
+
+  - Step 1 : Training the local model, submitting the updates and then the aggregation of updates : This step corresponds to the training of the AI model ( see [training example]). Once the global model is computed, it is sent back to the DP who participated in the training phase.  
+  - Step 2 : Compute local reputation scores : Each DP can calculate its reputation on the basis of a local assessment using its own test data. In the proposed method, each DP has a small portion of its own data, which it uses for local testing after each training cycle. In other words, each DP divides its data into training data and test data, the former used to train the model, the latter for evaluation purposes (test evaluation or compute the reputation score).   One way to compute the reputation score is to approximate the contribution of the DP when integrating its updates. On a given DP, the idea consists in testing the global model and the global model without the updates (substract the local model parameters from the global model parameters) of the DP on the local test data.  
+    - If the global model (with DP updates) performs better than the global model without DP updates, this indicates that the DP contribution has been beneficial, and the DP receives a higher reputation score.
+    - If the global model (without PD update) performs better, this means that the PD update has not contributed to the model's performance, or has even harmed it, resulting in a lower reputation score.
+
+  - Step 3 : the contribution to the gloabl model are sent to the DA and the MDA, to quantify correctly the reputation score across all the DP. 
+
+This approach provides a theoretical basis for calculating the reputation score, but further research is needed to assess its effectiveness and fairness, particularly in the context of the decentralized federated protocol used.
+
 ## Partners & roles
 
 ### Cozy Cloud
