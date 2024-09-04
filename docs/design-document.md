@@ -753,8 +753,26 @@ TBC
 
 ## Test specification
 
+### Decentralized Testing using Distributed Test Data
+ Testing a machine learning model in a decentralized environment without using a centralized dataset (the most widely used method in the literature) is feasible. The aim is to evaluate the model's performance on distributed data sources (DP) without gathering all the test data in a central server. 
+
+ The idea is to have the DP for the test plan as we have for the train plan.  Test data remains decentralized, and the model is evaluated on several DP. Then, test results are securely aggregated without exposing the raw data. This can be implemented using principles similar to the decentralized protocol used to train the model, with secure aggregation techniques and privacy-preserving mechanisms. 
+
+ Decentralized testing steps :
+
+ - Distribute trained model to DP: Once the model has been trained, the final global model is distributed to all DP holding test data. Each DP can then perform the evaluation locally on its data.
+
+ - Local evaluation at each DP: Each node performs a local test of the model using its decentralized test dataset. This involves:  i) Loading the global model; ii) Running predictions on locally available test data; iii) Calculating local performance metrics such as accuracy, precision, recall, F1 score or any other relevant metric (can be specified when creating the Test plan). 
+
+ - Sharing securely the local results: After calculating the perfromance measures, each DP shares them with the DA. Secure aggregation techniques, such as the secret sharing method used during the model training phase, can also be applied here (compute the metrics, split the metric values, send the shares to diffrent DA).
+
+ - Aggregation of test metrics: Each DA securely sums up the shares of individual nodes to calculate global performance metrics without requiring direct access to the test data of individual DP. 
+
+ - Global Performance Calculation: Once the shares are aggregated, the MDA reconstructs the global performance metrics (e.g., overall accuracy, confusion matrix) from the aggregated results. This provides a complete view of the model's performance across all decentralized test datasets. 
+
 
 ### Test plan
+ 
 
 #### Protocol execution test
 
@@ -846,7 +864,7 @@ The component-level testing is already handled by the test plan.
 
 Does not apply
 
-
+## Reputation Score 
 ## Partners & roles
 
 ### Cozy Cloud
