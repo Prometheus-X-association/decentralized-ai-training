@@ -25,3 +25,13 @@ Send the following requests to the designated endpoints:
 | /hello        | World         | 200, Hello World! |
 |               |               |                   |
 |               |               |                   |
+
+## Unit testing
+### Setup test environment
+### Run tests
+### Expected results
+
+## Component-level testing
+### Setup test environment
+### Run tests
+### Expected results
