@@ -1,0 +1,14 @@
+FROM ghcr.io/alelevente/edge_base:latest
+
+COPY src/aggregator.py .
+COPY src/model.py .
+COPY agg_runner.sh .
+
+RUN chmod +x agg_runner.sh
+
+EXPOSE 8000
+EXPOSE 5000
+
+ENV PYTHONUNBUFFERED=1
+
+CMD ./agg_runner.sh

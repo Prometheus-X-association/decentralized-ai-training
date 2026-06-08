@@ -1,0 +1,14 @@
+FROM ghcr.io/alelevente/edge_base:latest
+
+COPY src/data_processor.py .
+COPY src/model.py .
+COPY dp_runner.sh .
+
+RUN chmod +x dp_runner.sh
+
+EXPOSE 8000
+EXPOSE 5000
+
+ENV PYTHONUNBUFFERED=1
+
+CMD ./dp_runner.sh

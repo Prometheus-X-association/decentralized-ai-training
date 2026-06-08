@@ -1,0 +1,14 @@
+FROM edge_base
+
+COPY src/data_provider.py .
+COPY dp_runner.sh .
+COPY data/ /data/
+
+RUN chmod +x dp_runner.sh
+
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1
+ENV DATA_PATH=data
+
+CMD ./dp_runner.sh

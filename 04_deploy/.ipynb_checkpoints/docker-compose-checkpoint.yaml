@@ -1,0 +1,125 @@
+services:
+  dp1-init:
+    image: busybox:latest
+    container_name: dp1-init
+    command:
+      - "sh"
+      - "-c"
+      - 'if [ ! -f "/var/cache/$${NAME}" ]; then wget -O "/var/cache/$${NAME}" "$${URL}"; else echo "SKIP"; fi;'
+    environment:
+      URL: https://github.com/czeni/sample-datasets/blob/main/federated/dp1/train_data.npz
+      NAME: train_data.npz
+    volumes:
+      - type: bind
+        source: "../02_data/dp1"
+        target: "/var/cache"
+    user: ${UID}:${GID}
+
+  dp1:
+    image: ghcr.io/alelevente/data_processor:latest
+    container_name: data-processor-0
+    ports:
+      - "5001:5000"
+      - "8011:8000"
+    environment:
+      - mlflow_tracking_uri_internal=http://localhost:5000
+      - mlflow_tracking_uri_organizational=http://dp1:5000
+    networks:
+      - edge_test
+    volumes:
+      - type: bind
+        source: "../02_data/dp1"
+        target: "/data"
+        read_only: true
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 5s
+    depends_on:
+      dp1-init:
+        condition: service_completed_successfully
+
+  dp2-init:
+    image: busybox:latest
+    container_name: dp2-init
+    command:
+      - "sh"
+      - "-c"
+      - 'if [ ! -f "/var/cache/$${NAME}" ]; then wget -O "/var/cache/$${NAME}" "$${URL}"; else echo "SKIP"; fi;'
+    environment:
+      URL: https://github.com/czeni/sample-datasets/blob/main/federated/dp2/train_data.npz
+      NAME: train_data.npz
+    volumes:
+      - type: bind
+        source: "../02_data/dp2"
+        target: "/var/cache"
+    user: ${UID}:${GID}
+
+  dp2:
+    image: ghcr.io/alelevente/data_processor:latest
+    container_name: data-processor-1
+    ports:
+      - "5002:5000"
+      - "8012:8000"
+    environment:
+      - mlflow_tracking_uri_internal=http://localhost:5000
+      - mlflow_tracking_uri_organizational=http://dp2:5000
+    networks:
+      - edge_test
+    volumes:
+      - type: bind
+        source: "../02_data/dp2"
+        target: "/data"
+        read_only: true
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 5s
+    depends_on:
+      dp2-init:
+        condition: service_completed_successfully
+
+  aggregator:
+    image: ghcr.io/alelevente/aggregator:latest
+    container_name: aggregator
+    ports:
+      - "5101:5000"
+      - "8101:8000"
+    environment:
+      - mlflow_tracking_uri_internal=http://localhost:5000
+      - mlflow_tracking_uri_organizational=http://aggregator:5000
+      #- mlflow_tracking_uri_external=http://vm.fured.cloud.bme.hu:9860
+      - mlflow_tracking_uri_external=http://localhost:5101
+    networks:
+      - edge_test
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 5s
+
+  orchestrator:
+    image: ghcr.io/alelevente/orchestrator:latest
+    container_name: orchestrator
+    ports:
+      - "8000:8000"
+    networks:
+      - edge_test
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 5s
+    depends_on:
+      dp1:
+        condition: service_healthy
+      dp2:
+        condition: service_healthy
+      aggregator:
+        condition: service_healthy
+
+networks:
+  edge_test:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+                

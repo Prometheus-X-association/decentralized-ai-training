@@ -1,0 +1,13 @@
+FROM ghcr.io/alelevente/edge_base:latest
+
+COPY src/orchestrator.py .
+COPY src/model.py .
+COPY orchestrator_runner.sh .
+
+RUN chmod +x orchestrator_runner.sh
+
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1
+
+CMD ./orchestrator_runner.sh
