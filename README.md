@@ -3,7 +3,7 @@
 _Short description of the BB._
 
 ## Design Document
-See the design document [here](docs/design-document.md).
+See the design document [here](01_docs/design-document.md).
 
 ## Building instructions
 _Describe how to build the BB._
