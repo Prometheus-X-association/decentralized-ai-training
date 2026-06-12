@@ -173,7 +173,7 @@ services:
       pull: false
     container_name: orchestrator
     ports:
-      - "9000:8000"
+      - "8100:8000"
     #environment:
     #  - STATIC_PREFIX_API=/worker/orchestrator
     networks:

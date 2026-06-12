@@ -43,7 +43,7 @@ fi
 #deploying the stack
 if [ "$TEST_DEPLOY" = true ]; then
     echo "Deploying in test deploy mode"
-    docker-compose up
+    docker compose up
 elif [ "$CLUSTER_DEPLOY" = true ]; then
     echo "Deploying in cluster deploy mode"
     if [ "$BUILD_BASE" = true ]; then
@@ -53,5 +53,5 @@ elif [ "$CLUSTER_DEPLOY" = true ]; then
     fi
 else
     echo "Deploying in default deploy mode"
-    docker-compose up --add-host=host-gateway
+    docker compose up --add-host=host-gateway
 fi

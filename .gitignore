@@ -210,6 +210,7 @@ __marimo__/
 02_data/**.zip
 02_data/**.pickle
 02_data/**.npz
+03_dev/api_dev/bb01_registry.json
 04_deploy/data_provider/data/**
 05_test/basic_auth_creds.json
 

@@ -1,8 +1,7 @@
-from threading import Lock
-
 import tensorflow as tf
 from tensorflow import keras
 
+from threading import Lock
 
 class ClassifierModel:
     def __init__(self):
@@ -24,6 +23,6 @@ class ClassifierModel:
     def set_model(self, model: keras.Sequential):
         with self.__lock:
             self.neural_network = model
-
+    
     def serialize_model(self):
         return keras.models.model_to_json(self.neural_network)
