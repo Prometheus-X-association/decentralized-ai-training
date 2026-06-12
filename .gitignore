@@ -216,3 +216,5 @@ __marimo__/
 
 !04_deploy/.cache/dp1-data/.placeholder
 !04_deploy/.cache/dp2-data/.placeholder
+!02_data/mnist/.placeholder
+!02_data/mnist/client_data/.placeholder
