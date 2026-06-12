@@ -29,8 +29,6 @@ services:
       - DATA_PATH=/data_provider/data
     networks:
       - edge_test
-    ports:
-      - "9999:8000"
     volumes:
       - "./data_provider/data:/data_provider/data:ro"
       - "./data_provider/src:/data_provider/src"  # Only for development
