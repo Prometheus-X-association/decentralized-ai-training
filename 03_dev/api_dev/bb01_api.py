@@ -9,7 +9,7 @@ import requests
 import fastapi
 from fastapi import FastAPI, Body, Response, status
 
-TOKEN = os.getenv("GHCR_TOKEN", "blabla")
+#TOKEN = os.getenv("GHCR_TOKEN", "blabla")
 LOCK_NAME = os.getenv("LOCK_NAME", ".bb01_lock")
 REGISTRY_NAME = os.getenv("REGISTRY_NAME", "bb01_registry.json")
 
@@ -27,10 +27,13 @@ async def health_check():
 
 @app.get("/get_algorithm_credentials", status_code=status.HTTP_200_OK)
 def get_algorithm_credentials(ptx_contract_id: str, response: Response) -> dict:
-    
+    #read credential file:
+    with open("credentials.json") as cred_file:
+        cred = json.load(cred_file)
+
     if validate_ptx_contract_id(ptx_contract_id):
         answer = {
-            "ghcr_token": TOKEN
+            "ghcr_token": cred["token"]
         }
     else:
         answer = {}
@@ -117,7 +120,32 @@ async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) 
 
 @app.post("/start_training", status_code=status.HTTP_200_OK)
 async def start_training(ptx_contract_id: str,
-                   training_architecture: Dict[str, Any],
+                   training_architecture: Annotated[
+                       Dict[str, Any],
+                       Body(
+                           examples = [
+                               {
+                                   "data_processors": [
+                                        {
+                                            "uri": "http://data-processor-0:8000",
+                                            "aggregator": "http://aggregator:8000"
+                                        },
+                                        {
+                                            "uri": "http://data-processor-1:8000",
+                                            "aggregator": "http://aggregator:8000"
+                                        }
+                                    ],
+                                   "aggregators":
+                                    [
+                                        {
+                                            "uri": "http://aggregator:8000",
+                                            "aggregator": ""
+                                        }
+                                    ]
+                               }
+                           ]
+                       )
+                    ],
                    response: Response) -> dict:
     if validate_ptx_contract_id(ptx_contract_id):
         try:
