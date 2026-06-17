@@ -210,8 +210,8 @@ __marimo__/
 02_data/**.zip
 02_data/**.pickle
 02_data/**.npz
-03_dev/api_dev/bb01_registry.json
 03_dev/api_dev/credentials.json
+03_dev/api_dev/bb01_registry.json
 03_dev/share_sim/client_output/**
 04_deploy/data_provider/data/**
 05_test/basic_auth_creds.json
@@ -221,3 +221,4 @@ __marimo__/
 !02_data/mnist/.placeholder
 !02_data/mnist/client_data/.placeholder
 !03_dev/share_sim/client_data/.placeholder
+

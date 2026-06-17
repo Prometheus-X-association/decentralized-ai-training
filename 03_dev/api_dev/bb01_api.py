@@ -2,12 +2,19 @@ import asyncio
 import logging
 import os
 from typing import Annotated, Any, Dict
+from pydantic import BaseModel
 import json
 
 import requests
 
 import fastapi
 from fastapi import FastAPI, Body, Response, status
+
+class DeploymentEntry(BaseModel):
+    orchestrator_uri: str
+    orchestrator_credentials: dict
+    mlflow_uri: str
+    mlflow_credentials: dict
 
 #TOKEN = os.getenv("GHCR_TOKEN", "blabla")
 LOCK_NAME = os.getenv("LOCK_NAME", ".bb01_lock")
@@ -40,13 +47,10 @@ def get_algorithm_credentials(ptx_contract_id: str, response: Response) -> dict:
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.post("/register_deployment", status_code=status.HTTP_201_CREATED)
+@app.put("/register_deployment", status_code=status.HTTP_201_CREATED)
 async def register_deployment(ptx_contract_id: str,
-                        orchestrator_endpoint: str,
-                        orchestrator_credentials: Annotated[dict, Body()],
-                        mlflow_endpoint: str,
-                        mlflow_credentials: Annotated[dict, Body()],
-                        response: Response) -> dict:
+                              deployment_dict: DeploymentEntry,
+                              response: Response) -> dict:
     if validate_ptx_contract_id(ptx_contract_id):
         while os.path.exists(LOCK_NAME):
             await asyncio.sleep(0.1)
@@ -54,18 +58,15 @@ async def register_deployment(ptx_contract_id: str,
             with open(LOCK_NAME, "w") as lock_file:
                 lock_file.write("locked")
                 
-                log.info(f"Registering deployment for contract {ptx_contract_id} with orchestrator at {orchestrator_endpoint} and MLflow at {mlflow_endpoint}")
-                with open(REGISTRY_NAME, "r") as registry_file:
-                    registry = json.load(registry_file)
-                registry[ptx_contract_id] = {
-                    "orchestrator_endpoint": orchestrator_endpoint,
-                    "orchestrator_credentials": orchestrator_credentials,
-                    "mlflow_endpoint": mlflow_endpoint,
-                    "mlflow_credentials": mlflow_credentials
-                }
-                with open(REGISTRY_NAME, "w") as registry_file:
-                    json.dump(registry, registry_file)
-                os.remove(LOCK_NAME)
+            deployment_dict = deployment_dict.model_dump()
+            log.info(deployment_dict)
+            log.info(f"Registering deployment for contract {ptx_contract_id} with orchestrator at {deployment_dict['orchestrator_uri']} and MLflow at {deployment_dict['mlflow_uri']}")
+            with open(REGISTRY_NAME, "r") as registry_file:
+                registry = json.load(registry_file)
+            registry[ptx_contract_id] = deployment_dict
+            with open(REGISTRY_NAME, "w") as registry_file:
+                json.dump(registry, registry_file)
+            os.remove(LOCK_NAME)
         except Exception as e:
             log.error(f"Error registering deployment for contract {ptx_contract_id}: {e}")
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -97,7 +98,7 @@ async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) 
                     if ptx_contract_id in registry:
                         mlflow_info = registry[ptx_contract_id]
                         answer = {
-                            "mlflow_endpoint": mlflow_info["mlflow_endpoint"],
+                            "mlflow_endpoint": mlflow_info["mlflow_uri"],
                             "mlflow_credentials": mlflow_info["mlflow_credentials"]
                         }
                     else:
@@ -158,9 +159,14 @@ async def start_training(ptx_contract_id: str,
                 with open(REGISTRY_NAME, "r") as registry_file:
                     registry = json.load(registry_file)
                 
-                    orchestrator_uri = registry[ptx_contract_id]["orchestrator_endpoint"]
+                    orchestrator_uri = registry[ptx_contract_id]["orchestrator_uri"]
                     orchestrator_credentials = registry[ptx_contract_id]["orchestrator_credentials"]
             os.remove(LOCK_NAME)
+
+            health_check = requests.get(f"{orchestrator_uri}/health", timeout=10.0)
+            if health_check.status_code != 200:
+                response.status_code = status.HTTP_503_SERVICE_UNREACHABLE
+                raise Exception("Orchestrator unhealthy!")
 
             print(f"Starting training for contract {ptx_contract_id} with orchestrator at {orchestrator_uri}")
             result = requests.post(
@@ -170,7 +176,7 @@ async def start_training(ptx_contract_id: str,
             )
             
         except Exception as e:
-            log.error(f"Error retrieving MLflow access for contract {ptx_contract_id}: {e}")
+            log.error(f"Error retrieving orchestrator access for contract {ptx_contract_id}: {e}")
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {"message": f"Failed to retrieve MLflow access for contract {ptx_contract_id}."}
     answer = {
