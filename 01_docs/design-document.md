@@ -135,6 +135,38 @@ cd 04_deploy
 
 
 ### Error scenarios
+#### Missing shares
+
+In this decentralized BB, many errors could occur, many of them being linked to network communications and particularly between Data Processors (DP) and Data Aggregators (DA).
+
+One should understand that by design, the protocol requires that each DA on the same tree level receives exactly the same number of share, from the same children (to simplify, will we have only 2 levels at first, 2 leafs DA and one root DA, also called MDA).
+
+As any node could fail at any time, this is quite a complicated think to handle. In fact, there is an academic publication mainly focused on this issue: [https://dl.acm.org/doi/10.1145/3603719.3603730](https://dl.acm.org/doi/10.1145/3603719.3603730)
+
+We will rely on this work to implement a mechanism where DA on the same tree level are able to periodically sync with each others, and reach a consensus on a shares list, to perform the aggregation and pass the results to the upper tree level.
+
+When it is impossible to converge, typically because of missing shares, all the execution plan should be discarded. To do it, some garbage collector will periodically check the DA status and decide whether or not the execution plan can converge. If not, a cleanup will be made and the Orchestrator will be informed on this failure.
+
+There will be a status API endpoint that can be queried on the Orchestrator to know about an execution plan status at any time.
+
+The Orchestrator will also have a garbage collector mechanism, in case not enough shares are produced from the DP for an execution plan.
+
+#### Integrity failures
+
+If there are any computational errors on the training or aggregation part, the final model might be meaningless, even if the whole protocol successfully converged.
+
+This is not something that can be entirely prevented, but several actions can envisioned to minimize the risks.
+
+First, it is necessary to evaluate the produced model. This will be done by the [BB feature](#featuresmain-functionalities): "Model accuracy could be evaluated".
+
+Then, each computational step should have an independant integrity check. This includes:
+- Raw data retrieval
+- AI training
+- DP share generation
+- DA share aggregation
+
+A failing integrity check should handle an error that will be treated specifically depending on where it happens.
+
 
 ## Third party components & licenses
 
@@ -142,9 +174,13 @@ The code will be released in AGPLv3.
 
 
 ## OpenAPI specification
+TBA
 
 ## Test specification
+
 ### Test plan
+
+For detailed test specification, see [test specifiation document](tests.md)
 
 ## Partners & roles
 ### Cozy Cloud

@@ -162,18 +162,18 @@ async def start_training(ptx_contract_id: str,
                                    "data_processors": [
                                         {
                                             "uri": "http://data-processor-0:8000",
-                                            "aggregator": "http://aggregator:8000"
+                                            "target_mlflow": "http://aggregator:8000"
                                         },
                                         {
                                             "uri": "http://data-processor-1:8000",
-                                            "aggregator": "http://aggregator:8000"
+                                            "target_mlflow": "http://aggregator:8000"
                                         }
                                     ],
                                    "aggregators":
                                     [
                                         {
                                             "uri": "http://aggregator:8000",
-                                            "aggregator": ""
+                                            "target_mlflow": ""
                                         }
                                     ]
                                }

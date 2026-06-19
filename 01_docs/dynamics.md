@@ -10,7 +10,55 @@
 
 After setting up the system, through BB01's API, training initators can start the federated learning process. Federated learning's clients are the data processors, having data providers' data. They compute local model updates by training AI models until convergence. The locally convergent models are aggregated by (possibly hierarchically) aggregators.
 
+## Internal behavior - Aggregation
 
+![Aggregation structure overview](assets/aggregation_architecture.drawio.png)
+
+BB01 implements a multilayered federated learning. In this setup, there are a number of data processors and a hierarchal aggregator structure, similarly to [Mirval, Bouganim, and Popa - "Federated Learning on Personal Data Management Systems: Decentralized and Realiable Secure Aggregation Protocols" - 2023](https://dl.acm.org/doi/10.1145/3603719.3603730).
+
+Data processors train local AI models; then, by adding systematic noise to the model's weight matrix, they create *model shares*. Model shares are sent to different client aggregators. Aggregators can have multiple layers, ending in a *top level* aggregator.
+
+When the top level aggregator creates the federated model, all the added noise will be canceled out. This leads to a privacy-preserving aggregation protocol which does not hinder the performance of the training process.
+
+## Usage of BB01
+![Usage sequential diagram](assets/usage_seq.drawio.png)
+
+1. Once the building block is deployed, training initiators can query BB01's API through PDC for orchestrator's endpoint (including URI and corresponding credentials).
+
+2. Through the provided endpoint, training initiators can start the training process. To do so, training initiators shall define the aggregation architecture. The orchestrator expects a `json` file, listing the training clients (`data_processors` with their `uri`), and the aggregators (`aggregators` with their `uri`). For each data processor and aggregator a target MLFLow server's URI shall be given (`target_mlflow`). The only exception from this rule is the *top-level aggregator*, of which `target_mlflow` key shall have an empty string. Training initiators shall specify also the aggregation algorithm (`"aggregation_algorithm": "fedavg"` or `"aggregation_algorithm": "deltarep"`) For example:
+```json
+{
+    "data_processors": [
+        {
+            "uri": "http://data-processor-0:8000",
+            "target_mlflow": "http://aggregator-0:5000"
+        },
+        {
+            "uri": "http://data-processor-1:8000",
+            "target_mlflow": "http://aggregator-1:5000"
+        }
+    ],
+    "aggregators": [
+        {
+            "uri": "http://aggregator-0:8000",
+            "target_mlflow": "http://aggregator-2:5000"
+        },
+        {
+            "uri": "http://aggregator-1:8000",
+            "target_mlflow": "http://aggregator-2:5000"
+        },
+        {
+            "uri": "http://aggregator-2:8000",
+            "target_mlflow": ""
+        }
+    ],
+    "aggregation_algorithm": "fedavg"
+}
+```
+
+3. BB01 will run 1 communication round, and evaluate the federated model's performance with the provided test data. If the model does not perform well enough, training initators can repeat the training process. We note that *client selection and aggregator architecture specification* is the responsibility of the training initiator.
+
+4. If model users wants to download the federated model or check its performance, they shall get credentials to the federated MLFLow server (which is the top level aggregator's MLFLow server) from BB01's API, through PDC. With the provided endpoint (URI and credentials), model users can access the MLFlow server.
 
 ## Appendix
 ### Test set criterion
