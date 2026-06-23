@@ -48,7 +48,7 @@ def get_algorithm_credentials(ptx_contract_id: str, response: Response) -> dict:
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.put("/register_deployment", status_code=status.HTTP_201_CREATED)
+@app.post("/register_deployment", status_code=status.HTTP_201_CREATED)
 async def register_deployment(ptx_contract_id: str,
                               deployment_dict: DeploymentEntry,
                               response: Response) -> dict:
@@ -83,7 +83,7 @@ async def register_deployment(ptx_contract_id: str,
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.delete("/remove_deployment", status_code=status.HTTP_200_OK)
+@app.post("/remove_deployment", status_code=status.HTTP_200_OK)
 async def remove_deployment(ptx_contract_id: str,
                             response: Response) -> dict:
     if validate_ptx_contract_id(ptx_contract_id):
@@ -152,7 +152,44 @@ async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) 
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.post("/start_training", status_code=status.HTTP_200_OK)
+@app.get("/get_federated_mlflow_access", status_code=status.HTTP_200_OK)
+async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) -> dict:
+    if validate_ptx_contract_id(ptx_contract_id):
+        try:
+            while os.path.exists(LOCK_NAME):
+                await asyncio.sleep(0.1)
+
+            with open(LOCK_NAME, "w") as lock_file:
+                lock_file.write("locked")
+            
+            with open(REGISTRY_NAME, "r") as registry_file:
+                registry = json.load(registry_file)
+            
+                if ptx_contract_id in registry:
+                    mlflow_info = registry[ptx_contract_id]
+                    answer = {
+                        "mlflow_endpoint": mlflow_info["mlflow_uri"],
+                        "mlflow_credentials": mlflow_info["mlflow_credentials"]
+                    }
+                else:
+                    answer = {}
+                    response.status_code = status.HTTP_404_NOT_FOUND
+
+            os.remove(LOCK_NAME)
+            
+        except Exception as e:
+            log.error(f"Error retrieving MLflow access for contract {ptx_contract_id}: {e}")
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return {"message": f"Failed to retrieve MLflow access for contract {ptx_contract_id}."}
+        finally:
+            if os.path.exists(LOCK_NAME):
+                os.remove(LOCK_NAME)
+    else:
+        answer = {}
+        response.status_code = status.HTTP_400_BAD_REQUEST
+    return answer
+
+'''@app.post("/start_training", status_code=status.HTTP_200_OK)
 async def start_training(ptx_contract_id: str,
                    training_architecture: Annotated[
                        Dict[str, Any],
@@ -215,4 +252,4 @@ async def start_training(ptx_contract_id: str,
     answer = {
             "message": f"Training started for contract {ptx_contract_id}"
     }
-    return answer
+    return answer'''
