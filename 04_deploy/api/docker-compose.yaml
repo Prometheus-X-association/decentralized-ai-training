@@ -9,6 +9,8 @@ services:
       dockerfile: 04_deploy/api/bb01-api/Dockerfile
     ports:
       - 8000:8000
+    networks:
+      - nw-provider
 
   consumer:
     image: consumer
@@ -17,6 +19,8 @@ services:
       dockerfile: 04_deploy/api/consumer/Dockerfile
     ports:
       - 8001:8000
+    networks:
+      - nw-consumer
 
   tester:
     image: tester
@@ -25,6 +29,9 @@ services:
       dockerfile: 04_deploy/api/tester/Dockerfile
     ports:
       - 8002:8000
+    networks:
+      - nw-consumer
+      - nw-frontend
 #####################################################################
 
 #####################################################################
@@ -255,3 +262,5 @@ networks:
   # Participants' local networks
   nw-provider: { }
   nw-consumer: { }
+  nw-frontend:
+    driver: bridge
