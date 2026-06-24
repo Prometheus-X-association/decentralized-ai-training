@@ -1,4 +1,7 @@
 services:
+
+####################################################################
+######################## MAIN COMPONENTS ###########################
   bb01-api:
     image: bb01-api
     build:
@@ -22,4 +25,233 @@ services:
       dockerfile: 04_deploy/api/tester/Dockerfile
     ports:
       - 8002:8000
+#####################################################################
 
+#####################################################################
+######################## PDC setup ##############################
+  # PDC instances
+  pdc-provider:
+    container_name: pdc-provider
+    image: dataspace-connector:latest
+    pull_policy: never
+    restart: no # fail fast
+    #stop_signal: SIGKILL
+    init: true  # handle signals
+    labels:
+      setup: exchange
+    environment:
+      MONGO_URI: mongodb://pdc:pdc@mongodb:27017/pdc-provider?authSource=pdc-provider&appName=pdc-provider
+    configs:
+      - source: cfg-pdc-provider.json
+        target: /usr/src/app/src/config.json
+      - source: cfg-pdc-provider.env
+        target: /usr/src/app/.env
+    networks:
+      - nw-mongo
+      - nw-provider
+    healthcheck:
+      test: [ 'CMD', 'curl', '-o', '/dev/null', '-SsfI', 'http://localhost:3000' ]
+      start_period: 15s
+      interval: 1m
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  pdc-consumer:
+    container_name: pdc-consumer
+    image: dataspace-connector:latest
+    pull_policy: never
+    restart: no # fail fast
+    #stop_signal: SIGKILL
+    init: true # handle signals
+    labels:
+      setup: exchange
+    environment:
+      MONGO_URI: mongodb://pdc:pdc@mongodb:27017/pdc-consumer?authSource=pdc-consumer&appName=pdc-consumer
+    configs:
+      - source: cfg-pdc-consumer.json
+        target: /usr/src/app/src/config.json
+      - source: cfg-pdc-consumer.env
+        target: /usr/src/app/.env
+    networks:
+      - nw-mongo
+      - nw-consumer
+    healthcheck:
+      test: [ 'CMD', 'curl', '-o', '/dev/null', '-SsfI', 'http://localhost:3000' ]
+      start_period: 15s
+      interval: 1m
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+# Shared DB for PDC instances
+  mongodb:
+    container_name: mongodb
+    image: mongo:latest
+    restart: no # fail fast
+    labels:
+      setup: exchange
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    configs:
+      - source: cfg-mongo-init.js
+        target: /docker-entrypoint-initdb.d/mongo-init.js
+        mode: 0444
+    volumes:
+      - vol-mongo:/data/db
+    networks:
+      - nw-mongo
+    healthcheck:
+      test: [ 'CMD', 'mongosh', '-u=admin', '-p=admin', '--authenticationDatabase=admin', "--eval=db.adminCommand('ping')" ]
+      start_period: 15s
+      interval: 1m
+
+#####################################################################################
+############################## NGROK tunnels ########################################
+  # Reverse HTTP(S) tunnels to local PDC instances
+  ngrok-tun-provider:
+    container_name: ngrok-tun-provider
+    image: ngrok/ngrok:latest
+    restart: no # fail fast
+    labels:
+      setup: exchange
+    environment:
+      NGROK_AUTHTOKEN: ${DS_NGROK_AUTHTOKEN:?}
+    command: [ 'http', "--url=${DS_NGROK_DOMAIN:?}", '--log=stdout', 'pdc-provider:3000' ]
+    ports:
+      - "4041:4040" # debug web interface
+    networks:
+      - nw-provider
+    healthcheck:
+      test: [ 'CMD-SHELL', 'ngrok diagnose >/dev/null' ]
+      start_period: 10s
+      interval: 3m
+    depends_on:
+      pdc-provider:
+        condition: service_healthy
+
+  ngrok-tun-consumer:
+    container_name: ngrok-tun-consumer
+    image: ngrok/ngrok:latest
+    restart: no # fail fast
+    labels:
+      setup: exchange
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?}
+    command: [ 'http', "--url=${NGROK_DOMAIN:?}", '--log=stdout', 'pdc-consumer:3000' ]
+    ports:
+      - "4042:4040" # debug web interface
+    networks:
+      - nw-consumer
+    healthcheck:
+      test: [ 'CMD-SHELL', 'ngrok diagnose >/dev/null' ]
+      start_period: 10s
+      interval: 3m
+    depends_on:
+      pdc-consumer:
+        condition: service_healthy
+
+
+###########################################################################
+############################## CONFIGS ####################################
+
+configs:
+  # Define users for PDC's own collection
+  cfg-mongo-init.js:
+    content: |
+      db.getSiblingDB('pdc-provider').createUser({
+        user: 'pdc',
+        pwd: 'pdc',
+        roles: [{ role: 'readWrite',
+                    db: 'pdc-provider' }]
+      });
+      db.getSiblingDB('pdc-consumer').createUser({
+        user: 'pdc',
+        pwd: 'pdc',
+        roles: [{ role: 'readWrite', 
+                    db: 'pdc-consumer' }]
+      });
+
+  # Define provider PDC's main configuration
+  cfg-pdc-provider.json:
+    content: |
+      {
+        "endpoint": "https://${DS_NGROK_DOMAIN:?}",
+        "serviceKey": "${DS_PDC_SERVICE_KEY:?}",
+        "secretKey": "${DS_PDC_SECRET_KEY:?}",
+        "catalogUri": "https://api.visionstrust.com/v1/",
+        "contractUri": "https://contract.visionstrust.com/",
+        "consentUri": "https://consent.visionstrust.com/v1",
+        "credentials": [
+          {
+            "_id": "test-auth-basic",
+            "type": "api-key",
+            "key": "Authorization",
+            "value": "Basic YWRtaW46YWRtaW4="
+          }
+        ],
+        "expressLimitSize": "10mb",
+        "serviceChainAdapter": false,
+        "serviceChainAdapterTimeout": 3000
+      }
+  cfg-pdc-provider.env:
+    content: |
+      NODE_ENV=production
+      PORT=3000
+      SESSION_SECRET=6OEVPVF73INhElUq
+      SESSION_COOKIE_EXPIRATION=24000
+      WINSTON_LOGS_MAX_FILES=1d
+      WINSTON_LOGS_MAX_SIZE=20m
+      JWT_BEARER_TOKEN_EXPIRATION=1h
+      JWT_REFRESH_TOKEN_EXPIRATION=3h
+      EXCHANGE_TRIGGER_API_KEY=${DS_PDC_EXCHANGE_TRIGGER_API_KEY:-}
+      EXCHANGE_TIMEOUT=60
+
+  # Define consumer PDC's main configuration
+  cfg-pdc-consumer.json:
+    content: |
+      {
+        "endpoint": "https://${NGROK_DOMAIN:?}",
+        "serviceKey": "${PDC_SERVICE_KEY:?}",
+        "secretKey": "${PDC_SECRET_KEY:?}",
+        "catalogUri": "https://api.visionstrust.com/v1/",
+        "contractUri": "https://contract.visionstrust.com/",
+        "consentUri": "https://consent.visionstrust.com/v1",
+        "credentials": [],
+        "expressLimitSize": "10mb",
+        "serviceChainAdapter": false,
+        "serviceChainAdapterTimeout": 3000
+      }
+  cfg-pdc-consumer.env:
+    content: |
+      NODE_ENV=production
+      PORT=3000
+      SESSION_SECRET=6OEVPVF73INhElUq
+      SESSION_COOKIE_EXPIRATION=24000
+      WINSTON_LOGS_MAX_FILES=14d
+      WINSTON_LOGS_MAX_SIZE=20m
+      JWT_BEARER_TOKEN_EXPIRATION=1h
+      JWT_REFRESH_TOKEN_EXPIRATION=3h
+      EXCHANGE_TRIGGER_API_KEY=${PDC_EXCHANGE_TRIGGER_API_KEY:-}
+      EXCHANGE_TIMEOUT=60
+
+
+
+##############################################################################
+########################## other deployment configs ##########################
+
+volumes:
+  # Persisted db volume
+  vol-mongo:
+    external: false
+
+########################################################################################################################
+
+networks:
+  # MongoDB local network without external access
+  nw-mongo:
+    internal: true
+  # Participants' local networks
+  nw-provider: { }
+  nw-consumer: { }

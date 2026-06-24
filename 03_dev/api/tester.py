@@ -35,6 +35,19 @@ def write_pdc_request(contract_id: str,
     }
     return pdc_req
     
+@app.post("/pdc_login")
+async def login(pdc_connector_uri: str,
+                pdc_secret_key: str,
+                pdc_service_key: str) -> dict:
+    login_request = {
+        "secretKey": pdc_secret_key,
+        "serviceKey": pdc_service_key
+    }
+
+    response = requests.post(f"{pdc_connector_uri}/login",
+                             headers={"Content-Type": "application/json"},
+                             data=login_request)
+    return response.content
 
 @app.post("/test_api_credentials")
 async def get_credentials(pdc_connector_uri: str,
@@ -50,4 +63,4 @@ async def get_credentials(pdc_connector_uri: str,
     response = requests.post(f"{pdc_connector_uri}/consumer/exchange",
                   data=pdc_query,
                   headers={"Content-Type": "application/json",})# "Authorization"})
-    return response.content()
+    return response.content
