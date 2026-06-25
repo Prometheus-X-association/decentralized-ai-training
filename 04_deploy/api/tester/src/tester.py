@@ -33,7 +33,7 @@ def write_pdc_request(contract_id: str,
     pdc_req["consumerParams"] = {
         "query": consumer_parameters
     }
-    return pdc_req
+    return json.dumps(pdc_req)
     
 @app.post("/pdc_login")
 async def login(pdc_connector_uri: str,
@@ -44,10 +44,12 @@ async def login(pdc_connector_uri: str,
         "serviceKey": pdc_service_key
     }
 
+    login_request_json = json.dumps(login_request)
+
     response = requests.post(f"{pdc_connector_uri}/login",
                              headers={"Content-Type": "application/json"},
-                             data=login_request)
-    return response.content
+                             data=login_request_json)
+    return response.json()
 
 @app.post("/test_api_credentials")
 async def get_credentials(pdc_connector_uri: str,
@@ -55,12 +57,15 @@ async def get_credentials(pdc_connector_uri: str,
                           consumer_offer_id: str,
                           provider_offer_id: str,
                           credential_download_resource_id: str,
-                          credential_process_resource_id: str
+                          credential_process_resource_id: str,
+                          token: str
                           ) -> dict:
     
     pdc_query = write_pdc_request(contract_id, consumer_offer_id, provider_offer_id,
-                                  credential_download_resource_id, credential_process_resource_id)
+                                  credential_download_resource_id, credential_process_resource_id,
+                                  provider_parameters=[{"ptx_contract_id": "blabla"}])
     response = requests.post(f"{pdc_connector_uri}/consumer/exchange",
                   data=pdc_query,
-                  headers={"Content-Type": "application/json",})# "Authorization"})
-    return response.content
+                  headers={"Content-Type": "application/json",
+                           "Authorization": f"Bearer {token}"})
+    return response.json()

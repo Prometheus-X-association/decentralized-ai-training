@@ -3,7 +3,7 @@ FROM python:3.12
 RUN pip install fastapi[standard]
 RUN pip install requests
 
-COPY 03_dev/api/tester.py .
+COPY src/tester.py .
 
 EXPOSE 8000
 

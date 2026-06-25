@@ -1,37 +1,50 @@
+name: exchange
 services:
-
 ####################################################################
 ######################## MAIN COMPONENTS ###########################
   bb01-api:
     image: bb01-api
     build:
-      context: ../../
-      dockerfile: 04_deploy/api/bb01-api/Dockerfile
+      context: ./bb01-api
+      dockerfile: Dockerfile
     ports:
       - 8000:8000
     networks:
       - nw-provider
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+    depends_on:
+      pdc-provider:
+        condition: service_healthy
 
   consumer:
     image: consumer
     build:
-      context: ../../
-      dockerfile: 04_deploy/api/consumer/Dockerfile
+      context: ./consumer
+      dockerfile: Dockerfile
     ports:
       - 8001:8000
     networks:
       - nw-consumer
+    depends_on:
+      pdc-consumer:
+        condition: service_healthy
 
   tester:
     image: tester
     build:
-      context: ../..
-      dockerfile: 04_deploy/api/tester/Dockerfile
+      context: ./tester/
+      dockerfile: Dockerfile
     ports:
       - 8002:8000
     networks:
       - nw-consumer
       - nw-frontend
+    depends_on:
+      bb01-api:
+        condition: service_healthy
 #####################################################################
 
 #####################################################################

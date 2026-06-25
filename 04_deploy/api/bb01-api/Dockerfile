@@ -3,9 +3,8 @@ FROM python:3.12
 RUN pip install fastapi[standard]
 RUN pip install requests
 
-COPY 03_dev/api/bb01_api.py .
-COPY 03_dev/api/bb01_registry.json .
-COPY 03_dev/api/credentials.json .
+COPY src/bb01_api.py .
+COPY cfg/ .
 
 EXPOSE 8000
 
