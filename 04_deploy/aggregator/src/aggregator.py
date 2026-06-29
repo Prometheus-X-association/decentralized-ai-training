@@ -99,11 +99,11 @@ async def startup_event():
             #     password=admin_config["admin_password"]
             # )
             # os.environ["MLFLOW_TRACKING_PASSWORD"] = admin_config["admin_password"]
-            
+
             # user configuration:
             client = get_app_client("basic-auth", OWN_MLFLOW)
-            aggregator_password = secrets.token_urlsafe(32)
-            # print(f"Aggregator password: {aggregator_password}")
+            aggregator_password = admin_config["aggregator_password"]#secrets.token_urlsafe(32)
+            #print(f"Aggregator password: {aggregator_password}")
             client.create_user(username="aggregator", password=aggregator_password)
             client.grant_user_permission(
                 username="aggregator",
@@ -111,9 +111,9 @@ async def startup_event():
                 resource_id=experiment_id,
                 permission="MANAGE"
             )
-            client_password = secrets.token_urlsafe(32)
+            client_password = admin_config["model_user_password"]#secrets.token_urlsafe(32)
             client.create_user(username="model_user", password=client_password)
-            # print(f"Model user password: {client_password}")
+            #print(f"Model user password: {client_password}")
             client.grant_user_permission(
                 username="model_user",
                 resource_type="experiment",
