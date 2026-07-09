@@ -36,11 +36,29 @@ def _wait_for_health(url: str, timeout: int = 30, interval: float = 0.5) -> None
         f"Service at {url} did not become healthy within {timeout}s: {last_error}"
     )
 
+def _wait_for_auth_ready(tracking_uri: str, username: str, password: str,
+                          timeout: int = 30, interval: float = 0.5) -> None:
+    """Poll until a non-admin user can actually authenticate against MLflow.
+    /health passing only means the process is up; it says nothing about
+    whether the auth DB has finished provisioning custom users yet."""
+    deadline = time.time() + timeout
+    last_error = None
+    while time.time() < deadline:
+        try:
+            resp = requests.get(f"{tracking_uri}/#/experiments", auth=(username, password), timeout=2)
+            if resp.status_code == 200:
+                return
+            last_error = f"status {resp.status_code}"
+        except requests.exceptions.RequestException as exc:
+            last_error = exc
+        time.sleep(interval)
+    raise RuntimeError(f"User '{username}' not authenticated within {timeout}s: {last_error}")
+
 
 
 # Starting the main container for the tests, which is the aggregator container that runs mlflow server with authentication enabled
 @pytest.fixture(scope="session")
-def aggregator_container(): 
+def aggregator_container(admin_config): 
     """Build the aggregator image, run it, wait for it to be healthy,
     yield control to the tests, then always clean up."""
     subprocess.run(
@@ -57,6 +75,9 @@ def aggregator_container():
     try:
         _wait_for_health(HEALTH_URI, timeout=60)
         mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+        _wait_for_auth_ready(MLFLOW_TRACKING_URI, "aggregator", admin_config["aggregator_password"])
+        _wait_for_auth_ready(MLFLOW_TRACKING_URI, "model_user", admin_config["model_user_password"])
+
         yield
     finally:
         subprocess.run(["docker", "stop", CONTAINER_NAME], check=True)
