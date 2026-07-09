@@ -8,6 +8,8 @@ import time
 import mlflow
 import requests
 
+BASE_IMAGE_DIR = "04_deploy/base_slim"
+BASE_IMAGE = "ghcr.io/alelevente/base-slim:latest"
 AGGREGATOR_DOCKERFILE_DIR = os.environ.get("AGGREGATOR_DOCKERFILE_DIR", "04_deploy/aggregator")
 AGGREGATOR_IMAGE = os.environ.get("AGGREGATOR_IMAGE", "ghcr.io/alelevente/aggregator:latest")
 CONTAINER_NAME = "mlflow-auth-test"
@@ -61,6 +63,8 @@ def _wait_for_auth_ready(tracking_uri: str, username: str, password: str,
 def aggregator_container(admin_config): 
     """Build the aggregator image, run it, wait for it to be healthy,
     yield control to the tests, then always clean up."""
+    subprocess.run(["docker", "build", BASE_IMAGE_DIR, "-t", BASE_IMAGE], check=True)
+
     subprocess.run(
         ["docker", "build", AGGREGATOR_DOCKERFILE_DIR, "-t", AGGREGATOR_IMAGE, "--no-cache"],
         check=True
