@@ -27,11 +27,18 @@ $ ./deploy.sh --test-deploy
 ### Kubernetes-based production deployment
 For a full-fleged deployment, follow the procedure below:
 
-1. Run the following comands to build and push the BB's images to a repository:
+1. Run the following comands (on local computer) to build and push the BB's images to a repository:
 ```bash
     $ cd 04_deployment
-    $ ./deploy.sh --cluster-deploy
+    04_deployment$ ./deploy.sh --cluster-deploy
 ```
+
+2. Publish files for BB01-API from local computer to e.g. `cloud.bme.hu` (if it is your responsibility to run it). Note that it will publish itself to the PTX-Catalogue!
+```bash
+    04_deployment$ cd api
+    04_deployment/api$ ./deploy_to_fured.sh <port> <password>
+```
+
 2. Set BB01's API up to provide PDC access with the following codes:
 ```bash
 TBA

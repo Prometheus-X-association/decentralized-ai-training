@@ -15,8 +15,14 @@ services:
       test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
       start_period: 30s
       interval: 10s
+    environment:
+      - PDC_SERVICE_KEY=${DS_PDC_SERVICE_KEY:?}
+      - PDC_SECRET_KEY=${DS_PDC_SECRET_KEY:?}
+      - NGROK_DOMAIN=${DS_NGROK_DOMAIN:?}
     depends_on:
       pdc-provider:
+        condition: service_healthy
+      ngrok-tun-provider:
         condition: service_healthy
 
   consumer:

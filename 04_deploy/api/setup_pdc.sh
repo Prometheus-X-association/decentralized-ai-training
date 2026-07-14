@@ -19,7 +19,7 @@ source "$(readlink -f "$(dirname "$0")/helper.sh")"
 ########################################################################################################################
 
 PDC_REPO=https://github.com/Prometheus-X-association/dataspace-connector.git
-PDC_VERSION="1.10.1"
+PDC_VERSION="1.11.0"
 PDC_IMG="dataspace-connector"
 #PDC_DIR="${HOME}/pdc"
 

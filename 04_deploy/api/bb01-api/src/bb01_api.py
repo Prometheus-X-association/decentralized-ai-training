@@ -131,7 +131,7 @@ async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) 
                 if ptx_contract_id in registry:
                     mlflow_info = registry[ptx_contract_id]
                     answer = {
-                        "mlflow_endpoint": mlflow_info["mlflow_uri"],
+                        "mlflow_uri": mlflow_info["mlflow_uri"],
                         "mlflow_credentials": mlflow_info["mlflow_credentials"]
                     }
                 else:
@@ -152,8 +152,8 @@ async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) 
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.get("/get_federated_mlflow_access", status_code=status.HTTP_200_OK)
-async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) -> dict:
+@app.get("/get_orchestrator_access", status_code=status.HTTP_200_OK)
+async def get_orchestrator_access(ptx_contract_id: str, response: Response) -> dict:
     if validate_ptx_contract_id(ptx_contract_id):
         try:
             while os.path.exists(LOCK_NAME):
@@ -168,8 +168,8 @@ async def get_federated_mlflow_access(ptx_contract_id: str, response: Response) 
                 if ptx_contract_id in registry:
                     mlflow_info = registry[ptx_contract_id]
                     answer = {
-                        "mlflow_endpoint": mlflow_info["mlflow_uri"],
-                        "mlflow_credentials": mlflow_info["mlflow_credentials"]
+                        "orchestrator_uri": mlflow_info["orchestrator_uri"],
+                        "orchestrator_credentials": mlflow_info["orchestrator_credentials"]
                     }
                 else:
                     answer = {}
