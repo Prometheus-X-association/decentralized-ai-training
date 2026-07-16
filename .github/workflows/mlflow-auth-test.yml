@@ -27,9 +27,13 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.SECRET_GITHUB_USER }}
           password: ${{ secrets.SECRET_GITHUB_TOKEN }}
+      
+      - name: Pulling aggregator image
+        run: docker pull ghcr.io/${{ secrets.SECRET_GITHUB_USER }}/aggregator:test-auth
 
       - name: Run auth test suite
-        # env:
+        env:
+            GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }} 
         #   ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         #   AGGREGATOR_PASSWORD: ${{ secrets.AGGREGATOR_PASSWORD }}
         #   MODEL_USER_PASSWORD: ${{ secrets.MODEL_USER_PASSWORD }}
@@ -38,4 +42,4 @@ jobs:
       # Always run the cleanup step, even if the tests fail
       - name: Clean up container
         if: always()
-        run: docker rm -f mlflow_auth_test || true
+        run: docker rm -f mlflow-auth-test || true
