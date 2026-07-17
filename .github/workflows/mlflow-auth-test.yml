@@ -3,8 +3,10 @@ name: Mlflow Auth Tests
 on:
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 20 * * SUN' # Runs every Sunday at 20:00 
+      timezone: 'Europe/Budapest' # Set the timezone to Europe/Budapest
   workflow_dispatch:
-  push:
 
 jobs:
   mlflow-auth-test:
@@ -34,9 +36,9 @@ jobs:
       - name: Run auth test suite
         env:
             GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }} 
-        #   ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-        #   AGGREGATOR_PASSWORD: ${{ secrets.AGGREGATOR_PASSWORD }}
-        #   MODEL_USER_PASSWORD: ${{ secrets.MODEL_USER_PASSWORD }}
+            ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+            AGGREGATOR_PASSWORD: ${{ secrets.AGGREGATOR_PASSWORD }}
+            MODEL_USER_PASSWORD: ${{ secrets.MODEL_USER_PASSWORD }}
         run: pytest 05_test/mlflow_auth_test
         
       # Always run the cleanup step, even if the tests fail
