@@ -29,11 +29,13 @@ def write_pdc_request(contract_id: str,
                       provider_resource_id: str,
                       consumer_resource_id: str,
                       provider_parameters: list[dict] = {},
-                      consumer_parameters: list[dict] = {}) -> dict:
+                      consumer_parameters: list[dict] = {},
+                    ) -> dict:
     pdc_req = dict()
     pdc_req["contract"] = f"https://contract.visionstrust.com/contracts/{contract_id}"
     pdc_req["purposeId"] = f"https://api.visionstrust.com/v1/catalog/serviceofferings/{consumer_offer_id}"
     pdc_req["resourceId"] = f"https://api.visionstrust.com/v1/catalog/serviceofferings/{provider_offer_id}"
+    #source_type = "dataresources" if not is_resource_service else "softwareresources"
     pdc_req["resources"] = [{
         "resource": f"https://api.visionstrust.com/v1/catalog/dataresources/{provider_resource_id}",
         "params": {
@@ -96,7 +98,8 @@ async def register_deployment(pdc_connector_uri: str,
                               )) -> dict:
     pdc_query = write_pdc_request(contract_id, consumer_offer_id, provider_offer_id,
                                   register_deployment_resource_id, register_process_resource_id,
-                                  provider_parameters=[{"deployment_dict": deployment_json}])
+                                  provider_parameters=[{"deployment_dict": json.dumps(deployment_json)},
+                                                       {"ptx_contract_id": contract_id}])
     response = requests.post(f"{pdc_connector_uri}/consumer/exchange",
                   data=pdc_query,
                   headers={"Content-Type": "application/json",

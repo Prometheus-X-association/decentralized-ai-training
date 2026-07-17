@@ -130,7 +130,7 @@ services:
       - nw-mongo
     healthcheck:
       test: [ 'CMD', 'mongosh', '-u=admin', '-p=admin', '--authenticationDatabase=admin', "--eval=db.adminCommand('ping')" ]
-      start_period: 15s
+      start_period: 30s
       interval: 1m
 
 #####################################################################################

@@ -10,11 +10,11 @@ import requests
 import fastapi
 from fastapi import FastAPI, Body, Response, status
 
-class DeploymentEntry(BaseModel):
+'''class DeploymentEntry(BaseModel):
     orchestrator_uri: str
     orchestrator_credentials: dict
     mlflow_uri: str
-    mlflow_credentials: dict
+    mlflow_credentials: dict'''
 
 #TOKEN = os.getenv("GHCR_TOKEN", "blabla")
 LOCK_NAME = os.getenv("LOCK_NAME", ".bb01_lock")
@@ -48,9 +48,9 @@ def get_algorithm_credentials(ptx_contract_id: str, response: Response) -> dict:
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.post("/register_deployment", status_code=status.HTTP_201_CREATED)
+@app.get("/register_deployment", status_code=status.HTTP_201_CREATED)
 async def register_deployment(ptx_contract_id: str,
-                              deployment_dict: DeploymentEntry,
+                              deployment_dict: str,
                               response: Response) -> dict:
     if validate_ptx_contract_id(ptx_contract_id):
         while os.path.exists(LOCK_NAME):
@@ -59,7 +59,7 @@ async def register_deployment(ptx_contract_id: str,
             with open(LOCK_NAME, "w") as lock_file:
                 lock_file.write("locked")
                 
-            deployment_dict = deployment_dict.model_dump()
+            deployment_dict = json.loads(deployment_dict)
             log.info(deployment_dict)
             log.info(f"Registering deployment for contract {ptx_contract_id} with orchestrator at {deployment_dict['orchestrator_uri']} and MLflow at {deployment_dict['mlflow_uri']}")
             with open(REGISTRY_NAME, "r") as registry_file:
