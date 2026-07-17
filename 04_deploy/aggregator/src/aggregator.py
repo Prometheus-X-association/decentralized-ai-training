@@ -66,6 +66,7 @@ async def startup_event():
     if "MLFLOW_BASIC_AUTH" in os.environ:
         # regardless the number of workers, setting up MLFlow credentials only once:
         if not (os.path.exists(MLFLOW_USER_INFO)):
+            print("MLFlow user info not found, configuring MLFlow server")
             # signaling others of MLFlow is being configured:
             with open(MLFLOW_USER_INFO, "w") as f:
                 f.write("lock")
@@ -82,35 +83,41 @@ async def startup_event():
 
             # configuring MLFlow credentials:
             # admin configuration:
+            MLFLOW_ADMIN_CONFIG_PATH = os.path.join(os.getcwd(), "cfg", "mlflow_admin.json")
             with open(MLFLOW_ADMIN_CONFIG_PATH, "r") as f:
                 admin_config = json.load(f)
             # creating an MLFlow experiment:
             print("configuring MLFlow server")
             os.environ["MLFLOW_TRACKING_USERNAME"] = "admin"
-            os.environ["MLFLOW_TRACKING_PASSWORD"] = "password1234"
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = admin_config["admin_password"]
             mlflow.set_tracking_uri(OWN_MLFLOW)
             experiment_id = mlflow.create_experiment(MLFLOW_EXPERIMENT_NAME)
 
-            client = get_app_client("basic-auth", OWN_MLFLOW)
-            client.update_user_password(
-                username="admin",
-                password=admin_config["admin_password"]
-            )
+            # client = get_app_client("basic-auth", OWN_MLFLOW)
+            # client.update_user_password(
+            #     username="admin",
+            #     password=admin_config["admin_password"]
+            # )
+            # os.environ["MLFLOW_TRACKING_PASSWORD"] = admin_config["admin_password"]
+
             # user configuration:
-            os.environ["MLFLOW_TRACKING_PASSWORD"] = admin_config["admin_password"]
             client = get_app_client("basic-auth", OWN_MLFLOW)
-            aggregator_password = secrets.token_urlsafe(32)
+            aggregator_password = admin_config["aggregator_password"]#secrets.token_urlsafe(32)
+            #print(f"Aggregator password: {aggregator_password}")
             client.create_user(username="aggregator", password=aggregator_password)
-            client.create_experiment_permission(
-                experiment_id=experiment_id,
+            client.grant_user_permission(
                 username="aggregator",
+                resource_type="experiment",
+                resource_id=experiment_id,
                 permission="MANAGE"
             )
-            client_password = secrets.token_urlsafe(32)
+            client_password = admin_config["model_user_password"]#secrets.token_urlsafe(32)
             client.create_user(username="model_user", password=client_password)
-            client.create_experiment_permission(
-                experiment_id=experiment_id,
+            #print(f"Model user password: {client_password}")
+            client.grant_user_permission(
                 username="model_user",
+                resource_type="experiment",
+                resource_id=experiment_id,
                 permission="USE"
             )
 
