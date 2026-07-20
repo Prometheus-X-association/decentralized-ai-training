@@ -83,7 +83,7 @@ async def register_deployment(ptx_contract_id: str,
         response.status_code = status.HTTP_400_BAD_REQUEST
     return answer
 
-@app.post("/remove_deployment", status_code=status.HTTP_200_OK)
+@app.get("/remove_deployment", status_code=status.HTTP_200_OK)
 async def remove_deployment(ptx_contract_id: str,
                             response: Response) -> dict:
     if validate_ptx_contract_id(ptx_contract_id):
