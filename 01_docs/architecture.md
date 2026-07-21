@@ -11,7 +11,7 @@ Three stakeholders, registered entities of the PTX-Catalog, participate in this 
 The stakeholders shall make project contracts to be able to use BB01.
 
 The above stakeholders have various roles in operating the decentralized AI training service:
-- *Installer* role: installers configure and set up BB02's cluster system. (Setting up BB02 includes downloading data from data providers and deploying BB01's algorithms.)
+- *Installer* role: installers configure and set up BB02's cluster system. (Setting up BB02 includes downloading data from data providers and deploying BB01's algorithms.) The installer registers the deployment to the BB01 API endpoint's registry. The installer can also remove the deployment if it is no longer maintained.
 - *Training initiator* role: training initators shall define actual training architecture, and they can start the decentralized AI training process.
 - *Model user* role: model users can download and use the trained federated model.
 
@@ -68,8 +68,84 @@ Through the orchestrator interface, aggregators and data processors can notify t
 
 BB01 API is the component that is registered into the PTX catalogue. It also connects to the orchestrator's interface.
 
-It provides the following functions through a FastAPI interface:
-- `get_algorithm_credentials(ptx_contract_id) -> credentials`:  with a signed contract ID, this function returns credentials to the installer for downloading BB01 components from a docker repository. Note that certain parts of the core functionality (i.e., the AI model) can be a protected intellectual property.
-- `register_deployment(ptx_contract_id, orchestrator_endpoint, mlflow_enpoint)`: installers shall register their deployment to provide access to contracted partners (e.g., fellow data providers, model users, training initiators). For endpoint registration, installers shall provide resource URIs and necesarry credentials.
-- `get_federated_mlflow_access(ptx_contract_id) -> resource_uri, credentials`: with a signed contract ID, this function returns URI and credentials to model users for the final aggregator's MLFlow server. Through this access, model users can downlaod the latest model version, and check its performance metrics.
-- `start_training(ptx_contract_id, training_architecture)`: given a training architecture and a signed contract ID, training initators can start one iteration of model training (i.e., a *communication round*).
+BB01 API and actual depyloments are *disjoint*, and the API can function as a registry of BB01 deployments. It allows stakeholders to create and publish multiple federated learning system deployments in the Prometheus-X dataspace.
+
+It provides the following functions through a FastAPI interface (also accessible as PTX data offers):
+
+### **Component access**
+`get_algorithm_credentials(ptx_contract_id) -> credentials`
+
+With a signed contract ID, this function returns credentials to the installer for downloading BB01 components from a docker repository. Note that certain parts of the core functionality (i.e., the AI model) can be a protected intellectual property.
+
+This function returns, e.g., an access token:
+```json
+{
+    "ghcr_token": "xiojdghdgkjdhg3284578257klgansdfgkn2354"
+}
+```
+
+### **Register deployment**
+
+`register_deployment(ptx_contract_id, deployment_dict)`
+
+installers shall register their deployment to provide access to contracted partners (e.g., fellow data providers, model users, training initiators). For endpoint registration, installers shall provide resource URIs and necesarry credentials in the `deployment_dict`, e.g.:
+```json
+{
+    "orchestrator_uri": "https://orchestrator.mydeployment.company.com",
+    "orchestrator_credentials":
+    {
+        "username": "my_orchestrator_user",
+        "password": "my_orchestrator_password"
+    },
+    "mlflow_uri": "https://mlflow.topaggregator.mydeployment.company.com",
+    "mlflow_credentials":
+    {
+        "username": "my_mlflow_user",
+        "password": "my_mlflow_password"
+    }
+}
+```
+### **Get orchestrator access**
+
+`get_orchestrator_access(ptx_contract_id)`
+
+Training initators can carry this API endpoint to obtain the URL and ncessary credentials to the deployewd Orchestrator to start the training process.
+
+The server returns the following json:
+
+```json
+{
+    "orchestrator_uri": "https://orchestrator.mydeployment.company.com",
+    "orchestrator_credentials":
+    {
+        "username": "my_orchestrator_user",
+        "password": "my_orchestrator_password"
+    }
+}
+```
+
+### **Get MLFLow access**
+ `get_federated_mlflow_access(ptx_contract_id) -> resource_uri, credentials`
+ 
+ With a signed contract ID, this function returns URI and credentials to model users for the final aggregator's MLFlow server. Through this access, model users can downlaod the latest model version, and check its performance metrics.
+
+The server returns the following json:
+
+```json
+ {
+    "mlflow_uri": "https://mlflow.topaggregator.mydeployment.company.com",
+    "mlflow_credentials":
+    {
+        "username": "my_mlflow_user",
+        "password": "my_mlflow_password"
+    }
+}
+```
+
+### **Remove deployment**
+
+`remove_deployment(ptx_contract_id)`
+
+If a training process completed, and stakeholders wish to remove the deployment, it is the installer's responsibility to remove the deployment from BB01 API's registry.
+
+Attention, once a deployment is removed, it will no longer be available to other participants.

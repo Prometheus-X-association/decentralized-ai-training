@@ -38,7 +38,7 @@ to access, for reasons of privacy, security, and regulation.
 
 BB01 provides algorithms for decentralized AI training. Its core functionality is composed of data processors, aggregators, and the orchestrator.
 
-For detailed requirements, see [requirements.md](requirementes.md)
+For detailed requirements, see [requirements.md](requirements.md)
 
 ## Integrations
 ### Direct integration with other BBs
