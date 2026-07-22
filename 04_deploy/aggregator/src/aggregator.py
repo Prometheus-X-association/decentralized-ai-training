@@ -172,6 +172,12 @@ async def do_aggregation(aggregation_config: dict) -> dict:
         reputations["contribution"] = {host: 0.0 for host in aggregation_config["local_model_hosts"]}
         reputations["participation"] = {host: 0 for host in aggregation_config["local_model_hosts"]}
 
+    if "MLFLOW_BASIC_AUTH" in os.environ:
+            with open(MLFLOW_USER_INFO, "r") as f:
+                mlflow_user_info = json.load(f)
+            os.environ["MLFLOW_TRACKING_USERNAME"] = "aggregator"
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_user_info["aggregator_password"]
+
     for local_uri, model_id in zip(aggregation_config["local_model_hosts"],
                                    aggregation_config["local_model_uris"]):
         print(f"loading model from {local_uri}; model: {model_id}")
@@ -203,11 +209,7 @@ async def do_aggregation(aggregation_config: dict) -> dict:
         reputations["contribution"] = reps
 
     print("storing agg'd model")
-    if "MLFLOW_BASIC_AUTH" in os.environ:
-        with open(MLFLOW_USER_INFO, "r") as f:
-            mlflow_user_info = json.load(f)
-        os.environ["MLFLOW_TRACKING_USERNAME"] = "aggregator"
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_user_info["aggregator_password"]
+    
     mlflow.set_tracking_uri(OWN_MLFLOW)
     if "MLFLOW_BASIC_AUTH" in os.environ:
         mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
