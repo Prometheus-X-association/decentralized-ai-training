@@ -8,7 +8,8 @@ class ClassifierModel:
         self.__lock = Lock()
         self.neural_network = keras.Sequential(
             [
-                keras.layers.Flatten(input_shape=(28,28)),
+                keras.layers.InputLayer(shape=(28,28)),
+                keras.layers.Flatten(),
                 keras.layers.Dense(128, activation='relu'),
                 keras.layers.Dense(10, activation='softmax')
             ]

@@ -33,6 +33,12 @@ jobs:
       - name: Pulling aggregator image
         run: docker pull ghcr.io/${{ secrets.SECRET_GITHUB_USER }}/aggregator:test-auth
 
+      - name: Run aggregator fedavg test
+        env:
+            GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }}
+            ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: pytest 05_test/aggregator_test
+
       - name: Run auth test suite
         env:
             GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }} 

@@ -19,6 +19,8 @@ MLFLOW_TRACKING_URI = f"http://localhost:{MLFLOW_PORT}"
 HEALTH_URI = f"http://localhost:{AGGREGATOR_HEALTH_PORT}/health"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
 
+NUM_CLIENTS = os.environ.get("NUM_CLIENTS", 3)
+
 
 
 
@@ -141,4 +143,8 @@ def tracking_uri():
 def health_port():
     """Fixture to get the health port."""
     return AGGREGATOR_HEALTH_PORT
- 
+
+@pytest.fixture
+def mlflow_client_number():
+    """Fixture to get the number of MLflow clients."""
+    return NUM_CLIENTS
