@@ -18,7 +18,13 @@ def create_dummy_model(input_shape):
 
 
 def mlflow_log_client_model(client_id):
-    weights_path = f"05_test/aggregator_test/dummy_models/client_{client_id}.weights.h5"
+    response = requests.get(f"http://localhost:8555/client_{client_id}.weights.h5")
+    response.raise_for_status()  # raises an exception on 4xx/5xx instead of silently continuing
+
+    weights_path = f"client_{client_id}.weights.h5"
+    with open(weights_path, "wb") as f:
+        f.write(response.content)
+    print(f"Client {client_id} weights downloaded.")
     input_shape = os.environ.get("MLFLOW_INPUT_SHAPE", (28, 28))
     model = create_dummy_model(input_shape=input_shape)
     model.load_weights(weights_path)
@@ -55,14 +61,26 @@ def pull_all_models(as_user, experiment_name):
     return models
 
 def pull_test_data():
-    x_test = np.load("02_data/mnist/test_images.npy")
-    y_test = np.load("02_data/mnist/test_labels.npy")
+    x_test_binary = requests.get("http://localhost:8555/test-data/test_images.npy")
+    x_test_binary.raise_for_status()
+    y_test_binary = requests.get("http://localhost:8555/test-data/test_labels.npy")
+    y_test_binary.raise_for_status()
+    with open("02_data/mnist/test_images.npy", "wb") as f:
+        f.write(x_test_binary.content)
+    with open("02_data/mnist/test_labels.npy", "wb") as f:
+        f.write(y_test_binary.content)
+    x_test = np.load("02_data/mnist/test_images.npy", allow_pickle=True)
+    y_test = np.load("02_data/mnist/test_labels.npy", allow_pickle=True)
     return x_test, y_test
 
 
 def test_fedavg_aggregation(aggregator_container, as_user, experiment_name, mlflow_client_number):
     mlflow_load_client_model(as_user, experiment_name, mlflow_client_number)
     run_ids = get_run_ids(experiment_name)
+    for client_id in range(mlflow_client_number):
+        x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
+        with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
+            f.write(x_train_binary.content)
     aggregation_config = {
         "local_model_hosts": [
             "http://localhost:5000"
