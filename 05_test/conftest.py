@@ -8,7 +8,7 @@ import time
 import mlflow
 import requests
 
-GITHUB_USER = os.environ.get("GITHUB_USER")
+GITHUB_USER = os.environ.get("GITHUB_USER", "bencefarkas27")
 AGGREGATOR_DOCKERFILE_DIR = os.environ.get("AGGREGATOR_DOCKERFILE_DIR", "04_deploy/aggregator")
 AGGREGATOR_IMAGE = os.environ.get("AGGREGATOR_IMAGE", f"ghcr.io/{GITHUB_USER}/aggregator:test-auth")
 CONTAINER_NAME = "mlflow-auth-test"
@@ -18,6 +18,10 @@ AGGREGATOR_HEALTH_PORT = 9100
 MLFLOW_TRACKING_URI = f"http://localhost:{MLFLOW_PORT}"
 HEALTH_URI = f"http://localhost:{AGGREGATOR_HEALTH_PORT}/health"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
+
+NUM_CLIENTS = os.environ.get("NUM_CLIENTS", 3)
+
+
 
 
 # Polling the health endpoint instead of guessing a fixed sleep duration, to make sure the mlflow server is started up
@@ -139,4 +143,8 @@ def tracking_uri():
 def health_port():
     """Fixture to get the health port."""
     return AGGREGATOR_HEALTH_PORT
- 
+
+@pytest.fixture
+def mlflow_client_number():
+    """Fixture to get the number of MLflow clients."""
+    return NUM_CLIENTS

@@ -15,6 +15,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Open SSH tunnel in background
+        run: |
+          sshpass -p "${{ secrets.FURED_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            -p 1029 -fN -L 8555:localhost:8555 cloud@vm.fured.cloud.bme.hu
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -32,6 +40,12 @@ jobs:
       
       - name: Pulling aggregator image
         run: docker pull ghcr.io/${{ secrets.SECRET_GITHUB_USER }}/aggregator:test-auth
+
+      - name: Run aggregator fedavg test
+        env:
+            GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }}
+            ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: pytest 05_test/aggregator_test
 
       - name: Run auth test suite
         env:

@@ -15,6 +15,8 @@ ENV MLFLOW_FLASK_SERVER_SECRET_KEY="QlZzjbifUtn2bEGPl5OM0FZ8Je7BmI7SpqMgo6jsyNI"
 ##if test_deploy:
 ENV MLFLOW_BASIC_AUTH=true
 ENV mlflow_tracking_uri_internal=http://localhost:5000
+ENV mlflow_tracking_uri_external=http://localhost:5100
+ENV mlflow_tracking_uri_organizational=http://aggregator:5000
 ENV MLFLOW_AUTH_CONFIG_PATH=cfg/basic_auth.ini
 #CMD ./agg_runner.sh
 CMD [ "bash", "agg_runner.sh" ]
