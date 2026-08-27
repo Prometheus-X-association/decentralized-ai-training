@@ -164,13 +164,13 @@ async def do_aggregation(aggregation_config: dict) -> dict:
                 
     '''
     print("Aggregation: gathering local models")
-
+    client_ids = [f"client_{i}" for i in range(len(aggregation_config["local_model_hosts"]))]
     models = {}
     deltarep_n_samples = {}
     reputations = await _load_reputations()
     if reputations == {}:
-        reputations["contribution"] = {host: 0.0 for host in aggregation_config["local_model_hosts"]}
-        reputations["participation"] = {host: 0 for host in aggregation_config["local_model_hosts"]}
+        reputations["contribution"] = {host: 0.0 for host in client_ids}
+        reputations["participation"] = {host: 0 for host in client_ids}
 
     if "MLFLOW_BASIC_AUTH" in os.environ:
             with open(MLFLOW_USER_INFO, "r") as f:
@@ -178,14 +178,15 @@ async def do_aggregation(aggregation_config: dict) -> dict:
             os.environ["MLFLOW_TRACKING_USERNAME"] = "aggregator"
             os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_user_info["aggregator_password"]
 
-    for local_uri, model_id in zip(aggregation_config["local_model_hosts"],
-                                   aggregation_config["local_model_uris"]):
-        print(f"loading model from {local_uri}; model: {model_id}")
-        mlflow.set_tracking_uri(local_uri)
-        models[local_uri] = mlflow.tensorflow.load_model(model_id)
-        deltarep_n_samples[local_uri] = aggregation_config["local_data_size"][
-            aggregation_config["local_model_hosts"].index(local_uri)]
-        reputations["participation"][local_uri] += 1
+    for client_id, local_host, model_id, data_size in zip(client_ids,
+                                                          aggregation_config["local_model_hosts"],
+                                                          aggregation_config["local_model_uris"],
+                                                          aggregation_config["local_data_size"]):
+        print(f"loading model from {local_host}; model: {model_id}")
+        mlflow.set_tracking_uri(local_host)
+        models[client_id] = mlflow.tensorflow.load_model(model_id)
+        deltarep_n_samples[client_id] = data_size
+        reputations["participation"][client_id] += 1
 
     print("fedavg calculation started" if aggregation_config[
                                               "aggregation_algorithm"] == "fedavg" else "deltarep calculation started")
