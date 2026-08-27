@@ -88,9 +88,6 @@ services:
     #ports:
     #  - "5011:5000"
     #  - "9011:8000"
-    environment:
-      #- mlflow_tracking_uri_internal=http://localhost:5000
-      - mlflow_tracking_uri_organizational=http://dp1:5000
     networks:
       - edge_test
     volumes:
@@ -115,9 +112,6 @@ services:
     #ports:
     #  - "5012:5000"
     #  - "9012:8000"
-    environment:
-      #- mlflow_tracking_uri_internal=http://localhost:5000
-      - mlflow_tracking_uri_organizational=http://dp2:5000
     networks:
       - edge_test
     volumes:

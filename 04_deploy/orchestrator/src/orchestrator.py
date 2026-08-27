@@ -11,7 +11,7 @@ from typing import Annotated
 
 import asyncer
 import fastapi
-import mlflow
+#import mlflow
 import numpy as np
 import requests
 from fastapi import FastAPI, Body, Response, APIRouter
@@ -35,7 +35,7 @@ STATIC_PREFIX_API = os.getenv("STATIC_PREFIX_API", "")
 router = APIRouter(prefix=STATIC_PREFIX_API)
 
 
-@router.get("/get_model")
+'''@router.get("/get_model")
 async def get_model() -> dict:
     try:
         global_model = await _load_global_model()
@@ -49,7 +49,7 @@ async def get_model() -> dict:
         print(e)
         answer = {}
 
-    return answer
+    return answer'''
 
 
 class ArchiveExtension(enum.StrEnum):
@@ -62,7 +62,7 @@ class ArchiveExtension(enum.StrEnum):
 DEF_AGG_URL = f"http://aggregator:5000/{'worker/aggregator' if ROOT_PATH != "/" else ''}"
 
 
-@router.get("/download_model")
+'''@router.get("/download_model")
 async def download_model(model_uri: str, aggregator: str = DEF_AGG_URL,
                          format: ArchiveExtension = ArchiveExtension.zip):
     with tempfile.TemporaryDirectory(prefix="mlflow-model-", ignore_cleanup_errors=True, delete=True) as tmp_dir:
@@ -102,7 +102,7 @@ async def get_model_org() -> dict:
         print(e)
         answer = {}
 
-    return answer
+    return answer'''
 
 
 async def _store_global_model(model_path):
@@ -137,21 +137,30 @@ async def _load_global_model():
     return mod_dict
 
 
-@router.put("/set_global_model")
-async def set_global_model(model_path: dict):
+@router.put("/set_initial_global_model")
+async def set_global_model(model_resource: dict):
     '''
-        Sets the global model (URIs).
+        Sets the global (initial) model (URIs).
         Parameters:
-            - model_path: a dictionary, describing host's URI (model_host)
-                          and the model's URI (model_uri)
+            - model_resource: a dictionary containing the following keys:
+            {"model_host": "http://top-level-aggregator:5000": host of the global model (MLFlow tracking server)
+              "model_id": "m-132456412": id of the global model (MLFlow artifact URI)
+              "model_username": "user": username for accessing the global model (MLFlow tracking server)
+              "model_password": "pass": password for accessing the global model (MLFlow tracking server
+            }
     '''
-    await _store_global_model(model_path)
+    await _store_global_model(model_resource)
 
 
 def post_train_request(parameters: dict) -> dict:
     share = requests.post(f"{parameters['dp_uri']}/train_model", json=parameters)
     share.raise_for_status()
     return share.json()
+
+def post_aggregate_request(parameters: dict) -> dict:
+    agg_res = requests.post(f"{parameters['agg_uri']}/aggregate_models", json=parameters)
+    agg_res.raise_for_status()
+    return agg_res.json()
 
 
 @router.post("/start_training")
@@ -161,15 +170,23 @@ async def do_training(aggregation_tree: Annotated[
         examples=[
             {
                 "processors": [
-                    "http://data-processor-0:8000",
-                    "http://data-processor-1:8000"
+                    {"uri": "http://data-processor-0:8000",
+                     "train_data_uri": "/data/train_data.npz",
+                     "forward_model_to": ["http://aggregator-1:8000", "http://aggregator2:8000"]},
+                    {"uri": "http://data-processor-1:8000",
+                     "train_data_uri": "/data/train_data.npz",
+                     "forward_model_to": ["http://aggregator-1:8000", "http://aggregator-2:8000"]}
                 ],
                 "aggregators": [
-                    "http://aggregator:8000"
-                ],
-                "train_data_uri": [
-                    "/data/train_data.npz",
-                    "/data/train_data.npz"
+                    {"uri":"http://aggregator-1:8000",
+                     "forward_model_to": ["http://aggregator-top:8000"],
+                     "top_level_aggregator": False},
+                    {"uri":"http://aggregator-2:8000",
+                     "forward_model_to": ["http://aggregator-top:8000"],
+                     "top_level_aggregator": False},
+                    {"uri":"http://aggregator-top:8000",
+                     "forward_model_to": [],
+                     "top_level_aggregator": True}
                 ],
                 "aggregation_algorithm": "fedavg"
             }
@@ -179,30 +196,50 @@ async def do_training(aggregation_tree: Annotated[
     print(aggregation_tree)
 
     # Train client models:
-    global_model_host, global_model_uri = "", ""
+    global_model_host, global_model_id = "", ""
     try:
         global_model = await _load_global_model()
-        global_model_host = global_model["model_host_organizational"]
-        global_model_uri = global_model["model_uri"]
+        global_model_host = global_model["model_host"]
+        global_model_id = global_model["model_id"]
+        global_model_user = global_model["model_username"]
+        global_model_password = global_model["model_password"]
     except:
         print("no global model found")
 
     params = []
     for i, proc in enumerate(aggregation_tree["processors"]):
         params.append({
-            "dp_uri": proc,
+            "dp_uri": proc["uri"],
             "global_model_host": global_model_host,
-            "global_model_uri": global_model_uri,
-            "local_model_id": f"dp_{i}",
-            "train_data_uri": aggregation_tree["train_data_uri"][i],
-            "num_shares": 1,
+            "global_model_id": global_model_id,
+            "global_model_user": global_model_user,
+            "global_model_password": global_model_password,
+            "train_data_uri": proc["train_data_uri"],
+            "forward_model_to": proc["forward_model_to"]
         })
 
     with ThreadPool(processes=2) as pool:
         shares = pool.map(post_train_request, params)
     print(shares)
+    share_results = {}
+    for i in range(len(shares)):
+        share_results[aggregation_tree["processors"][i]["uri"]] = shares[i]
 
     # Aggregating results:
+    for agg in aggregation_tree["aggregators"]:
+        if not agg["top_level_aggregator"]:
+            params = {
+                "agg_uri": agg["uri"],
+                "model_sources": [share_results[proc["uri"]] for proc in aggregation_tree["processors"]],
+                "aggregation_algorithm": aggregation_tree["aggregation_algorithm"],
+                "forward_model_to": agg["forward_model_to"]
+            }
+            with ThreadPool(processes=2) as pool:
+                aggregates = pool.map(post_aggregate_request, [params])
+            print(aggregates)
+            agg_results = {}
+            for i in range(len(aggregates)):
+                agg_results[aggregation_tree["aggregators"][i]["uri"]] = aggregates[i]
     if aggregation_tree["aggregation_algorithm"] == "fedavg":
         # For FedAvg:
         aggregation_config = {
@@ -219,7 +256,9 @@ async def do_training(aggregation_tree: Annotated[
             "local_data_size": [],
             "aggregation_algorithm": "deltarep",
             "global_model_host": global_model_host,
-            "global_model_uri": global_model_uri,
+            "global_model_id": global_model_id,
+            "global_model_user": global_model_user,
+            "global_model_password": global_model_password
         }
 
     for sh in shares:
