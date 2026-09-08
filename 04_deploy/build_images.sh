@@ -3,7 +3,7 @@ set -eou pipefail
 
 cp ../03_dev/model.py aggregator/src/model.py
 cp ../03_dev/model.py data_processor/src/model.py
-cp ../03_dev/share_tools.py data_processor/src/share_tools.py
+cp ../03_dev/share_sim/share_tools.py data_processor/src/share_tools.py
 
 rm -rfv data_provider/data
 mkdir -p data_provider/data/dp1
@@ -18,9 +18,12 @@ else
     exit 1
 fi
 
-for img in base_* data_provider data_processor aggregator orchestrator; do
+for img in base_* data_provider data_processor orchestrator; do
     pushd "${img}"
         docker build . -t "ghcr.io/alelevente/${img}:latest" --no-cache
     popd
 done
+
+docker build -f aggregator/Dockerfile.agg -t "ghcr.io/alelevente/aggregator:latest" --no-cache aggregator
+docker build -f aggregator/Dockerfile.tlagg -t "ghcr.io/alelevente/top-level-aggregator:latest" --no-cache aggregator
 

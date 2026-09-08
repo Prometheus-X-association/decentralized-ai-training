@@ -5,7 +5,7 @@ WORKDIR /aggregator
 COPY src/aggregator.py .
 COPY src/model.py .
 COPY src/agg_algorithms.py .
-COPY src/agg_helpers.py .
+COPY src/agg_helper.py .
 COPY agg_runner.sh .
 
 RUN chmod +x agg_runner.sh

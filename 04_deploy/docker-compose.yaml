@@ -125,17 +125,79 @@ services:
       dp2-init:
         condition: service_completed_successfully
 
-  aggregator:
+  aggregator1:
     image: ghcr.io/alelevente/aggregator:latest
     build:
       context: aggregator
       additional_contexts:
         base_slim: "service:base_slim"
       pull: false
-    container_name: aggregator
+    container_name: aggregator-1
+    ports:
+      - "5101:5000"
+      #- "9100:8000"
+    #environment:
+      #- STATIC_PREFIX_MLFLOW=/worker/aggregator
+      #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000/worker/aggregator
+      #- mlflow_tracking_uri_external=http://localhost:5100/worker/aggregator
+      #- STATIC_PREFIX_API=/worker/aggregator
+      #
+      #- mlflow_tracking_uri_internal=http://localhost:5000
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000
+      #- mlflow_tracking_uri_external=http://localhost:5100
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator2:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-2
+    ports:
+      - "5102:5000"
+      #- "9101:8000"
+    #environment:
+      #- STATIC_PREFIX_MLFLOW=/worker/aggregator
+      #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000/worker/aggregator
+      #- mlflow_tracking_uri_external=http://localhost:5100/worker/aggregator
+      #- STATIC_PREFIX_API=/worker/aggregator
+      #
+      #- mlflow_tracking_uri_internal=http://localhost:5000
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000
+      #- mlflow_tracking_uri_external=http://localhost:5100
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregatort:
+    image: ghcr.io/alelevente/top-level-aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-top
     ports:
       - "5100:5000"
-      - "9100:8000"
+      - "8000:8000"
     environment:
       #- STATIC_PREFIX_MLFLOW=/worker/aggregator
       #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
@@ -144,8 +206,8 @@ services:
       #- STATIC_PREFIX_API=/worker/aggregator
       #
       #- mlflow_tracking_uri_internal=http://localhost:5000
-      - mlflow_tracking_uri_organizational=http://aggregator:5000
-      - mlflow_tracking_uri_external=http://localhost:5100
+      - mlflow_tracking_uri_organizational=http://aggregator-top:5000
+      #- mlflow_tracking_uri_external=http://localhost:5100
     networks:
       - edge_test
     volumes:
@@ -181,7 +243,11 @@ services:
         condition: service_healthy
       dp2:
         condition: service_healthy
-      aggregator:
+      aggregator1:
+        condition: service_healthy
+      aggregator2:
+        condition: service_healthy
+      aggregatort:
         condition: service_healthy
 
 ### Intermediate data volumes

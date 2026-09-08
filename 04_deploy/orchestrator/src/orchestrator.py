@@ -16,6 +16,8 @@ import numpy as np
 import requests
 from fastapi import FastAPI, Body, Response, APIRouter
 
+import agg_tree_processor
+
 log = logging.getLogger(__name__)
 
 LOCK_NAME = os.getenv("LOCK_NAME", ".edge_fl_lock")
@@ -180,13 +182,16 @@ async def do_training(aggregation_tree: Annotated[
                 "aggregators": [
                     {"uri":"http://aggregator-1:8000",
                      "forward_model_to": ["http://aggregator-top:8000"],
-                     "top_level_aggregator": False},
+                     "top_level_aggregator": False,
+                     "aggregation_level": 0},
                     {"uri":"http://aggregator-2:8000",
                      "forward_model_to": ["http://aggregator-top:8000"],
-                     "top_level_aggregator": False},
+                     "top_level_aggregator": False,
+                     "aggregation_level": 0},
                     {"uri":"http://aggregator-top:8000",
                      "forward_model_to": [],
-                     "top_level_aggregator": True}
+                     "top_level_aggregator": True,
+                     "aggregation_level": 1}
                 ],
                 "aggregation_algorithm": "fedavg"
             }
@@ -194,6 +199,7 @@ async def do_training(aggregation_tree: Annotated[
     ),
 ]) -> dict:
     print(aggregation_tree)
+    aggtp = agg_tree_processor.AggregationTreeProcessor(aggregation_tree)
 
     # Train client models:
     global_model_host, global_model_id = "", ""
@@ -206,87 +212,56 @@ async def do_training(aggregation_tree: Annotated[
     except:
         print("no global model found")
 
-    params = []
-    for i, proc in enumerate(aggregation_tree["processors"]):
-        params.append({
-            "dp_uri": proc["uri"],
-            "global_model_host": global_model_host,
-            "global_model_id": global_model_id,
-            "global_model_user": global_model_user,
-            "global_model_password": global_model_password,
-            "train_data_uri": proc["train_data_uri"],
-            "forward_model_to": proc["forward_model_to"]
-        })
-
+    # Data processors training:
+    dp_config = aggtp.get_data_processor_configs(
+        global_model_host = global_model["model_host"],
+        global_model_id = global_model["model_id"],
+        global_model_user = global_model["model_username"],
+        global_model_password = global_model["model_password"]
+    )
     with ThreadPool(processes=2) as pool:
-        shares = pool.map(post_train_request, params)
-    print(shares)
-    share_results = {}
+        shares = pool.map(post_train_request, dp_config)
+    model_sources, model_ids, local_data_sizes = [], [], []
     for i in range(len(shares)):
-        share_results[aggregation_tree["processors"][i]["uri"]] = shares[i]
+        model_sources.append(dp_config[i]["uri"])
+        model_ids.append(shares[i]["model_ids"])
+        local_data_sizes.append(shares[i]["n_samples"])
 
     # Aggregating results:
-    for agg in aggregation_tree["aggregators"]:
-        if not agg["top_level_aggregator"]:
-            params = {
-                "agg_uri": agg["uri"],
-                "model_sources": [share_results[proc["uri"]] for proc in aggregation_tree["processors"]],
-                "aggregation_algorithm": aggregation_tree["aggregation_algorithm"],
-                "forward_model_to": agg["forward_model_to"]
-            }
-            with ThreadPool(processes=2) as pool:
-                aggregates = pool.map(post_aggregate_request, [params])
-            print(aggregates)
-            agg_results = {}
-            for i in range(len(aggregates)):
-                agg_results[aggregation_tree["aggregators"][i]["uri"]] = aggregates[i]
-    if aggregation_tree["aggregation_algorithm"] == "fedavg":
-        # For FedAvg:
-        aggregation_config = {
-            "local_model_hosts": [],
-            "local_model_uris": [],
-            "local_data_size": [],
-            "aggregation_algorithm": "fedavg"
-        }
-    elif aggregation_tree["aggregation_algorithm"] == "deltarep":
-        # For DeltaRep:
-        aggregation_config = {
-            "local_model_hosts": [],
-            "local_model_uris": [],
-            "local_data_size": [],
-            "aggregation_algorithm": "deltarep",
-            "global_model_host": global_model_host,
-            "global_model_id": global_model_id,
-            "global_model_user": global_model_user,
-            "global_model_password": global_model_password
-        }
-
-    for sh in shares:
-        aggregation_config["local_model_hosts"].append(sh["model_server_host"])
-        aggregation_config["local_model_uris"].append(sh["model_share_uri"])
-        aggregation_config["local_data_size"].append(sh["n_samples"])
-
-    aggregates = requests.post(f"{aggregation_tree['aggregators'][0]}/aggregate_models", json=aggregation_config)
-    aggregates.raise_for_status()
-    aggregates = aggregates.json()
-
-    print(aggregates)
+    # lower level aggregators:
+    for level in range(aggtp.get_level_counts()-1):
+        level_aggs = aggtp.get_aggregator_level(
+            level,
+            model_sources=model_sources,
+            model_ids=model_ids,
+            local_data_sizes=local_data_sizes,
+            global_model_host=global_model_host,
+            global_model_id=global_model_id,
+            global_model_user=global_model_user,
+            global_model_password=global_model_password
+        )
+        with ThreadPool(processes=2) as pool:
+            aggregates = pool.map(post_aggregate_request, level_aggs)
+        model_sources, model_ids, local_data_sizes = [], [], []
+        for i in range(len(aggregates)):
+            model_sources.append(level_aggs[i]["uri"])
+            model_ids.append(aggregates[i]["model_id"])
+    # top-level aggregator:
+    top_agg = aggtp.get_top_level_aggregator(
+        model_sources=model_sources,
+        model_ids=model_ids,
+        local_data_sizes=local_data_sizes
+    )
+    top_agg_res = post_aggregate_request(top_agg)
     model_dict = {
-        "model_host_external": aggregates["aggregated_model_host_external"],
-        "model_host_organizational": aggregates["aggregated_model_host_organizational"],
-        "model_uri": aggregates["aggregated_model_uri"],
-        # "model_username": aggregates["aggregated_model_username"],
-        # "model_password": aggregates["aggregated_model_password"]
+        "model_host": top_agg_res["aggregated_model_host_external"],
+        "model_id": top_agg_res["aggregated_model_uri"],
+        "model_username": top_agg_res.get("aggregated_model_username", ""),
+        "model_password": top_agg_res.get("aggregated_model_password", "")
     }
-    await _store_global_model(model_dict)
 
-    answer = {
-        "aggregated_model_host": model_dict["model_host_external"],
-        "aggregated_model_uri": model_dict["model_uri"],
-        # "aggregated_model_username": os.environ["BASIC_AUTH_USERNAME"],
-        # "aggregated_model_password": os.environ["BASIC_AUTH_PASSWORD"]
-    }
-    return answer
+    await _store_global_model(model_dict)
+    return model_dict
 
 
 ########################################################################################################################
