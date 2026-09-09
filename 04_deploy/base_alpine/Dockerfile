@@ -1,4 +1,4 @@
-FROM python:3.14-alpine
+FROM python:alpine
 LABEL maintainer="alekszejenko.levente@vik.bme.hu"
 RUN apk add --no-cache wget py3-requests py3-fastapi uvicorn #py3-numpy
 ENV PYTHONPATH=/usr/lib/python3.14/site-packages/

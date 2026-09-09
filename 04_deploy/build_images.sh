@@ -3,7 +3,7 @@ set -eou pipefail
 
 cp ../03_dev/model.py aggregator/src/model.py
 cp ../03_dev/model.py data_processor/src/model.py
-cp ../03_dev/share_sim/share_tools.py data_processor/src/share_tools.py
+#cp ../03_dev/share_sim/share_tools.py data_processor/src/share_tools.py
 
 rm -rfv data_provider/data
 mkdir -p data_provider/data/dp1

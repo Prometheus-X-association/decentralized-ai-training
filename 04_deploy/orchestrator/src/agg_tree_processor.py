@@ -1,4 +1,4 @@
-class AggregatorProcessor:
+class AggregationTreeProcessor:
     def __process_aggregation_tree_data_processors(self):
         self.data_processors = []
         for proc in self.aggregation_tree["processors"]:

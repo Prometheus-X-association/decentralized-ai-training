@@ -17,14 +17,12 @@ from model import ClassifierModel
 import share_tools
 
 app = FastAPI()
-OWN_MLFLOW = os.environ["mlflow_tracking_uri_internal"]
 
 
 @app.on_event("startup")
 def on_startup():
     app.model = ClassifierModel()
-    print("model created")
-    mlflow.set_tracking_uri(OWN_MLFLOW)
+
 
 
 @app.api_route("/health", methods=["GET", "HEAD"], status_code=fastapi.status.HTTP_200_OK)
