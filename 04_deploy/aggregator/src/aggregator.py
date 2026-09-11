@@ -227,6 +227,9 @@ async def do_aggregation(aggregation_config: dict) -> dict:
         answer["aggregated_model_username"] = "model_user"
         answer["aggregated_model_password"] = mlflow_user_info["model_user_password"]
 
+    if aggregation_config["aggregation_algorithm"] == "deltarep":
+        answer["reputations_scores"] = reputations["contribution"]
+
     return answer
 
 
