@@ -224,3 +224,5 @@ __marimo__/
 !02_data/models/.placeholder
 !03_dev/share_sim/client_data/.placeholder
 
+*.keras
+model.json

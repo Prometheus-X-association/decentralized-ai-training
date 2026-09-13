@@ -1,3 +1,4 @@
+import json
 import os
 
 import fastapi
@@ -97,22 +98,17 @@ async def do_training(train_config: dict) -> dict:
     model_ids = []
     for share, forward_to in zip(shares, train_config["forward_model_to"]):
         model_id = secrets.token_hex(32)
-        model_path = f"/tmp/{model_id}"
-        os.makedirs(model_path, exist_ok=True)
-        share.save(model_path)
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for root, _, files in os.walk(model_path):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, model_path)
-                    zip_file.write(file_path, arcname)
-        zip_buffer.seek(0)
+        model_path = f"/tmp/{model_id}.keras"
+        keras.models.save_model(share, model_path)
+        with open(f"{model_path}/model.json", "rb") as f:
+            model_data = json.load(f)
+        #os.makedirs(model_path, exist_ok=True)
+    
         response = requests.post(
             f"{forward_to}/post_model",
             params={"model_id": model_id},
-            data=zip_buffer.getvalue(),
-            headers={"Content-Type": "application/zip"}
+            data=model_data
+            #TODO: save model as zip, json and weights as h5
         )
         if response.status_code != 200:
             raise Exception(f"Failed to forward model to {forward_to}: {response.text}")

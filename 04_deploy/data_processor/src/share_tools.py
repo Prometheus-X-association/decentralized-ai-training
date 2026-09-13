@@ -22,17 +22,14 @@ def create_shares(model: tf.keras.Sequential, n_aggregators: int, scale=0.01) ->
         share1 = copy.deepcopy(model)
         share2 = copy.deepcopy(model)
         
-        for layer_i in range(len(model)):
-            if not hasattr(model[layer_i], 'weight') or not hasattr(model[layer_i], 'bias'):
-                continue
+        for layer_i in range(len(model.layers)):
+            weights = model.layers[layer_i].get_weights()
             #generating appropriate noise fo uniform distribution:
-            weight_noise = (tf.random.uniform_like(model[layer_i].weight)-0.5) * scale
-            bias_noise = (tf.random.uniform_like(model[layer_i].bias)-0.5) * scale
+            weight_noise = tf.random.normal(shape=weights[0].shape, stddev=scale)
+            bias_noise = tf.random.normal(shape=weights[1].shape, stddev=scale)
             #setting the weights and biases of the shares, ensuring that they sum up to the original model parameters:
-            share1[layer_i].weight = tf.Variable(model[layer_i].weights[0] + weight_noise)
-            share2[layer_i].weight = tf.Variable(model[layer_i].weights[0] - weight_noise) 
-            share1[layer_i].bias = tf.Variable(model[layer_i].weights[1] + bias_noise)
-            share2[layer_i].bias = tf.Variable(model[layer_i].weights[1] - bias_noise)
+            share1.layers[layer_i].set_weights([weights[0] + weight_noise, weights[1] + bias_noise])
+            share2.layers[layer_i].set_weights([weights[0] - weight_noise, weights[1] - bias_noise])
             
         shares.append(share1)
         shares.append(share2)

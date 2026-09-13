@@ -110,6 +110,16 @@ async def health_check():
 STATIC_PREFIX_API = os.getenv("STATIC_PREFIX_API", "")
 router = APIRouter(prefix=os.getenv("STATIC_PREFIX_API", ""))
 
+@router.post("/post_model")
+async def post_model(model_data: dict) -> dict:
+    model_id = model_data["model_id"]
+    print(f"Received model {model_id} of size {len(model_data['model'])} bytes")
+    successful_storage = await agg_helper.store_model(model_id, model_data["model"], MODELS_PATH, LOCK_NAME)
+    if not successful_storage:
+        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"Failed to store model {model_id}")
+    return {"message": f"Model {model_id} stored successfully"}
+
 
 @router.post("/aggregate_models")
 async def do_aggregation(aggregation_config: dict) -> dict:

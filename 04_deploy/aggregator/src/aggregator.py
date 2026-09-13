@@ -10,7 +10,7 @@ import agg_helper
 LOCK_NAME = ".edge_fl_lock"
 TEST_DATA_PATH = "/data/course_test.npz"
 
-MODELS_PATH = os.getenv("MODELS_PATH", "../../02_data/models")
+MODELS_PATH = os.getenv("MODELS_PATH", "models")
 
 app = FastAPI(title="Aggregator")
 
@@ -25,8 +25,10 @@ STATIC_PREFIX_API = os.getenv("STATIC_PREFIX_API", "")
 router = APIRouter(prefix=os.getenv("STATIC_PREFIX_API", ""))
 
 @router.post("/post_model")
-async def post_model(model_id: str, model_data_zip: bytes) -> dict:
-    successful_storage = await agg_helper.store_model(model_id, model_data_zip, MODELS_PATH, LOCK_NAME)
+async def post_model(model_data: dict) -> dict:
+    model_id = model_data["model_id"]
+    print(f"Received model {model_id} of size {len(model_data['model'])} bytes")
+    successful_storage = await agg_helper.store_model(model_id, model_data["model"], MODELS_PATH, LOCK_NAME)
     if not successful_storage:
         raise fastapi.HTTPException(status_code=fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"Failed to store model {model_id}")
@@ -49,10 +51,10 @@ async def do_aggregation(aggregation_config: dict) -> dict:
             - dict: {aggregated_model_host, aggregated_model_uri}
                 
     '''
-    combined_model = await agg_helper.aggregate_models(aggregation_config, LOCK_NAME, TEST_DATA_PATH)
+    combined_model = await agg_helper.aggregate_models(aggregation_config, LOCK_NAME, MODELS_PATH, TEST_DATA_PATH)
 
     if "forward_model_to" in aggregation_config:
-        model_id =await agg_helper.forward_model(combined_model, aggregation_config["forward_model_to"], LOCK_NAME)
+        model_id =await agg_helper.forward_model(combined_model, aggregation_config["forward_model_to"][0], LOCK_NAME)
 
     return {"model_id": model_id}
 

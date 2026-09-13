@@ -144,5 +144,6 @@ class AggregationTreeProcessor:
             "model_sources": model_sources,
             "model_ids": model_ids,
             "local_data_sizes": local_data_sizes if len(local_data_sizes) > 0 else [1] * len(model_ids),
+            "aggregation_algorithm": self.aggregation_tree.get("aggregation_algorithm", "fedavg")
         })
         return agg_config

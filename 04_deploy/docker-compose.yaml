@@ -134,8 +134,8 @@ services:
       pull: false
     container_name: aggregator-1
     ports:
-      - "5101:5000"
-      #- "9100:8000"
+      #- "5101:5000"
+      - "9100:8000"
     #environment:
       #- STATIC_PREFIX_MLFLOW=/worker/aggregator
       #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
@@ -165,8 +165,8 @@ services:
       pull: false
     container_name: aggregator-2
     ports:
-      - "5102:5000"
-      #- "9101:8000"
+      #- "5102:5000"
+      - "9101:8000"
     #environment:
       #- STATIC_PREFIX_MLFLOW=/worker/aggregator
       #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
@@ -187,7 +187,7 @@ services:
       start_period: 30s
       interval: 10s
 
-  aggregatort:
+  aggregator-top:
     image: ghcr.io/alelevente/top-level-aggregator:latest
     build:
       context: aggregator
@@ -247,7 +247,7 @@ services:
         condition: service_healthy
       aggregator2:
         condition: service_healthy
-      aggregatort:
+      aggregator-top:
         condition: service_healthy
 
 ### Intermediate data volumes

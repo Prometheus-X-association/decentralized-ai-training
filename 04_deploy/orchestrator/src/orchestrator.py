@@ -160,6 +160,7 @@ def post_train_request(parameters: dict) -> dict:
     return share.json()
 
 def post_aggregate_request(parameters: dict) -> dict:
+    print("posting aggregation request to: ", parameters)
     agg_res = requests.post(f"{parameters['agg_uri']}/aggregate_models", json=parameters)
     agg_res.raise_for_status()
     return agg_res.json()
@@ -174,7 +175,7 @@ async def do_training(aggregation_tree: Annotated[
                 "processors": [
                     {"uri": "http://data-processor-0:8000",
                      "train_data_uri": "/data/train_data.npz",
-                     "forward_model_to": ["http://aggregator-1:8000", "http://aggregator2:8000"]},
+                     "forward_model_to": ["http://aggregator-1:8000", "http://aggregator-2:8000"]},
                     {"uri": "http://data-processor-1:8000",
                      "train_data_uri": "/data/train_data.npz",
                      "forward_model_to": ["http://aggregator-1:8000", "http://aggregator-2:8000"]}
@@ -203,6 +204,7 @@ async def do_training(aggregation_tree: Annotated[
 
     # Train client models:
     global_model_host, global_model_id = "", ""
+    global_model_user, global_model_password = "", ""
     try:
         global_model = await _load_global_model()
         global_model_host = global_model["model_host"]
@@ -214,22 +216,22 @@ async def do_training(aggregation_tree: Annotated[
 
     # Data processors training:
     dp_config = aggtp.get_data_processor_configs(
-        global_model_host = global_model["model_host"],
-        global_model_id = global_model["model_id"],
-        global_model_user = global_model["model_username"],
-        global_model_password = global_model["model_password"]
+        global_model_host = global_model_host,
+        global_model_id = global_model_id,
+        global_model_user = global_model_user,
+        global_model_password = global_model_password
     )
     with ThreadPool(processes=2) as pool:
         shares = pool.map(post_train_request, dp_config)
     model_sources, model_ids, local_data_sizes = [], [], []
     for i in range(len(shares)):
-        model_sources.append(dp_config[i]["uri"])
+        model_sources.append(dp_config[i]["dp_uri"])
         model_ids.append(shares[i]["model_ids"])
         local_data_sizes.append(shares[i]["n_samples"])
 
     # Aggregating results:
     # lower level aggregators:
-    for level in range(aggtp.get_level_counts()-1):
+    for level in range(aggtp.get_level_counts()):
         level_aggs = aggtp.get_aggregator_level(
             level,
             model_sources=model_sources,
@@ -244,13 +246,13 @@ async def do_training(aggregation_tree: Annotated[
             aggregates = pool.map(post_aggregate_request, level_aggs)
         model_sources, model_ids, local_data_sizes = [], [], []
         for i in range(len(aggregates)):
-            model_sources.append(level_aggs[i]["uri"])
+            model_sources.append(level_aggs[i]["agg_uri"])
             model_ids.append(aggregates[i]["model_id"])
     # top-level aggregator:
     top_agg = aggtp.get_top_level_aggregator(
         model_sources=model_sources,
         model_ids=model_ids,
-        local_data_sizes=local_data_sizes
+        local_data_sizes=[1 for _ in range(len(model_sources))]
     )
     top_agg_res = post_aggregate_request(top_agg)
     model_dict = {
