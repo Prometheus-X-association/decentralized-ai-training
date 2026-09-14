@@ -207,7 +207,7 @@ async def do_training(aggregation_tree: Annotated[
     global_model_user, global_model_password = "", ""
     try:
         global_model = await _load_global_model()
-        global_model_host = global_model["model_host"]
+        global_model_host = global_model["model_host_organizational"]
         global_model_id = global_model["model_id"]
         global_model_user = global_model["model_username"]
         global_model_password = global_model["model_password"]
@@ -256,7 +256,8 @@ async def do_training(aggregation_tree: Annotated[
     )
     top_agg_res = post_aggregate_request(top_agg)
     model_dict = {
-        "model_host": top_agg_res["aggregated_model_host_external"],
+        "model_host_external": top_agg_res["aggregated_model_host_external"],
+        "model_host_organizational": top_agg_res["aggregated_model_host_organizational"],
         "model_id": top_agg_res["aggregated_model_uri"],
         "model_username": top_agg_res.get("aggregated_model_username", ""),
         "model_password": top_agg_res.get("aggregated_model_password", "")

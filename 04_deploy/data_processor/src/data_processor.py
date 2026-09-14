@@ -11,8 +11,8 @@ from random import shuffle
 import mlflow
 
 import secrets
-import zipfile
 import io
+import shutil
 
 from model import ClassifierModel
 import share_tools
@@ -60,7 +60,7 @@ async def do_training(train_config: dict) -> dict:
     assert len(train_config["forward_model_to"])%2 == 0 or len(train_config["forward_model_to"]) == 1, "forward_model_to must contain an even number of endpoints"
 
     if "global_model_id" in train_config and train_config["global_model_id"] != "":
-        print("loading global model")
+        print(f"loading global model {train_config['global_model_id']} from {train_config['global_model_host']}")
         if "global_model_user" in train_config and "global_model_password" in train_config:
             os.environ["MLFLOW_TRACKING_USERNAME"] = train_config["global_model_user"]
             os.environ["MLFLOW_TRACKING_PASSWORD"] = train_config["global_model_password"]
@@ -69,7 +69,6 @@ async def do_training(train_config: dict) -> dict:
         if "global_model_user" in train_config and "global_model_password" in train_config:
             del os.environ["MLFLOW_TRACKING_USERNAME"]
             del os.environ["MLFLOW_TRACKING_PASSWORD"]
-        mlflow.set_tracking_uri(OWN_MLFLOW)
 
     print("training")
     if train_config["train_data_uri"].startswith("http"):
@@ -98,17 +97,20 @@ async def do_training(train_config: dict) -> dict:
     model_ids = []
     for share, forward_to in zip(shares, train_config["forward_model_to"]):
         model_id = secrets.token_hex(32)
-        model_path = f"/tmp/{model_id}.keras"
-        keras.models.save_model(share, model_path)
-        with open(f"{model_path}/model.json", "rb") as f:
-            model_data = json.load(f)
-        #os.makedirs(model_path, exist_ok=True)
+        model_path = f"/tmp/{model_id}"
+        os.makedirs(model_path, exist_ok=True)
+        model_structure = share.to_json()
+        with open(f"{model_path}/model.json", "w") as f:
+            json.dump(json.loads(model_structure), f)
+        share.save_weights(f"{model_path}/model.weights.h5", overwrite=True)
+        shutil.make_archive("model", "zip", model_path)
+        with open("model.zip", "rb") as f:
+            model_data = f.read()
     
         response = requests.post(
             f"{forward_to}/post_model",
             params={"model_id": model_id},
             data=model_data
-            #TODO: save model as zip, json and weights as h5
         )
         if response.status_code != 200:
             raise Exception(f"Failed to forward model to {forward_to}: {response.text}")

@@ -7,7 +7,7 @@ import requests
 import asyncio
 import numpy as np
 from fastapi import FastAPI, Response, APIRouter
-from mlflow import get_app_client
+from mlflow.server import get_app_client
 
 import agg_helper
 
@@ -19,7 +19,9 @@ MLFLOW_ADMIN_CONFIG_PATH = "/cfg/mlflow_admin.json"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
 OWN_MLFLOW = os.environ["MLFLOW_TRACKING_URI_INTERNAL"]
 
-app = FastAPI(title="Orchestrator")
+MODELS_PATH = os.getenv("MODELS_PATH", "models")
+
+app = FastAPI(title="Top-level Aggregator")
 
 
 @app.on_event("startup")
@@ -111,10 +113,11 @@ STATIC_PREFIX_API = os.getenv("STATIC_PREFIX_API", "")
 router = APIRouter(prefix=os.getenv("STATIC_PREFIX_API", ""))
 
 @router.post("/post_model")
-async def post_model(model_data: dict) -> dict:
-    model_id = model_data["model_id"]
-    print(f"Received model {model_id} of size {len(model_data['model'])} bytes")
-    successful_storage = await agg_helper.store_model(model_id, model_data["model"], MODELS_PATH, LOCK_NAME)
+async def post_model(request: fastapi.Request) -> dict:
+    model_id = request.query_params["model_id"]
+    model_data = await request.body()
+    print(f"Received model {model_id} of size {len(model_data)} bytes")
+    successful_storage = await agg_helper.store_model(model_id, model_data, MODELS_PATH, LOCK_NAME)
     if not successful_storage:
         raise fastapi.HTTPException(status_code=fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"Failed to store model {model_id}")
@@ -138,7 +141,10 @@ async def do_aggregation(aggregation_config: dict) -> dict:
             - dict: {aggregated_model_host, aggregated_model_uri}
                 
     '''
-    combined_model = await agg_helper.aggregate_models(aggregation_config, LOCK_NAME, TEST_DATA_PATH)
+    combined_model = await agg_helper.aggregate_models(aggregation_config,
+                                                       LOCK_NAME,
+                                                       MODELS_PATH,
+                                                       TEST_DATA_PATH)
 
     print("storing agg'd model")
     if "MLFLOW_BASIC_AUTH" in os.environ:

@@ -11,6 +11,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 import agg_algorithms
+import shutil
 
 async def _store_reputations(reputations: dict[str | float], lock_name: str):
     while os.path.exists(lock_name):
@@ -44,9 +45,10 @@ async def load_model(model_uri: str, lock_name: str):
     while os.path.exists(lock_name):
         print("waiting for lock")
         await asyncio.sleep(np.random.randint(10) / 100)
-    with open(model_uri, "r") as f:
+    with open(f"{model_uri}/model.json", "r") as f:
         model_data = json.load(f)
     model = tf.keras.models.model_from_json(json.dumps(model_data))
+    model.load_weights(f"{model_uri}/model.weights.h5")
     try:
         os.remove(lock_name)
     except OSError:
@@ -61,8 +63,9 @@ async def store_model(model_id: str,
         print("waiting for lock")
         await asyncio.sleep(np.random.randint(10) / 100)
     os.makedirs(f"{model_path}/{model_id}", exist_ok=True)
-    with open(f"{model_path}/{model_id}/model.json", "w") as f:
-        json.dump(model_data, f)
+    with open(f"{model_path}/{model_id}/model.zip", "wb") as f:
+        f.write(model_data)
+    shutil.unpack_archive(f"{model_path}/{model_id}/model.zip", f"{model_path}/{model_id}")
     try:
         os.remove(lock_name)
     except OSError:
@@ -86,7 +89,7 @@ async def aggregate_models(aggregation_config: dict,
     for source, model_id in zip(aggregation_config["model_sources"],
                                     aggregation_config["model_ids"]):
         print(f"loading model from {source}; model: {model_id}")
-        models[source] = await load_model(f"{model_path}/{model_id}/model.json", lock_name)
+        models[source] = await load_model(f"{model_path}/{model_id}", lock_name)
         deltarep_n_samples[source] = aggregation_config["local_data_sizes"][
             aggregation_config["model_sources"].index(source)]
         reputations["participation"][source] += 1
@@ -126,16 +129,21 @@ async def forward_model(combined_model: tf.keras.Model,
         print("waiting for lock")
         await asyncio.sleep(np.random.randint(10) / 100)
     model_id = secrets.token_hex(32)
-    #model_path = f"/tmp/{model_id}.keras"
-    #os.makedirs(model_path, exist_ok=True)
-    model_json = {
-        "model_id": model_id,
-        "model": combined_model.neural_network.to_json()
-    }
+    model_path = f"/tmp/{model_id}"
+    os.makedirs(model_path, exist_ok=True)
+    model_structure = combined_model.neural_network.to_json()
+    with open(f"{model_path}/model.json", "w") as f:
+        json.dump(json.loads(model_structure), f)
+    combined_model.neural_network.save_weights(f"{model_path}/model.weights.h5", overwrite=True)
+    shutil.make_archive("model", "zip", model_path)
+    with open("model.zip", "rb") as f:
+        model_data = f.read()
+
     print(f"Forwarding aggregated model {model_id} to {forward_to}")
     response = requests.post(
         f"{forward_to}/post_model",
-        json=model_json
+        params={"model_id": model_id},
+        data=model_data
     )
     if response.status_code != 200:
         raise Exception(f"Failed to forward model to {forward_to}: {response.text}")
