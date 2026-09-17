@@ -8,7 +8,7 @@ import zipfile
 import numpy as np
 import requests
 import tensorflow as tf
-from tensorflow import keras
+import keras
 
 import agg_algorithms
 import shutil
@@ -47,7 +47,7 @@ async def load_model(model_uri: str, lock_name: str):
         await asyncio.sleep(np.random.randint(10) / 100)
     with open(f"{model_uri}/model.json", "r") as f:
         model_data = json.load(f)
-    model = tf.keras.models.model_from_json(json.dumps(model_data))
+    model = keras.models.model_from_json(json.dumps(model_data))
     model.load_weights(f"{model_uri}/model.weights.h5")
     try:
         os.remove(lock_name)
@@ -122,7 +122,7 @@ async def aggregate_models(aggregation_config: dict,
 
     return combined_model
 
-async def forward_model(combined_model: tf.keras.Model,
+async def forward_model(combined_model: keras.Model,
                         forward_to: str,
                         lock_name: str):
     while os.path.exists(lock_name):

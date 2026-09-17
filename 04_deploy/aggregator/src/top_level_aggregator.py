@@ -155,7 +155,7 @@ async def do_aggregation(aggregation_config: dict) -> dict:
     mlflow.set_tracking_uri(OWN_MLFLOW)
     if "MLFLOW_BASIC_AUTH" in os.environ:
         mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
-    model_info = mlflow.tensorflow.log_model(combined_model.neural_network)
+    model_info = mlflow.keras.log_model(combined_model.neural_network)
 
     answer = {
         "aggregated_model_host_external": os.environ["mlflow_tracking_uri_external"],

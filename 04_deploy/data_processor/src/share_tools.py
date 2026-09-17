@@ -2,14 +2,14 @@ import numpy as np
 import tensorflow as tf
 import copy
 
-def create_shares(model: tf.keras.Sequential, n_aggregators: int, scale=0.01) -> list[tf.keras.Sequential]:
+def create_shares(model: tf.keras.Sequential, n_aggregators: int, scale=0.005) -> list[tf.keras.Sequential]:
     """
     Create shares of the model parameters for secure aggregation.
     
     params:
         - model (tf.keras.Sequential): The neural network model whose parameters are to be shared.
         - n_aggregators (int): The number of aggregators among which the shares will be distributed.
-        - scale (float): The scale of the random shares. Default is 0.01 to ensure that the shares are small and do not significantly affect the training process.
+        - scale (float): The scale of the random shares. Default is 0.005 to ensure that the shares are small and do not significantly affect the training process.
                          scale=1.0 refers to a Uniform distribution in the range of  [-0.5, 0.5)
     returns:
         - shares (list[tf.keras.Sequential]): A list of model shares, one for each aggregator.

@@ -5,7 +5,7 @@ import fastapi
 import numpy as np
 import requests
 from fastapi import FastAPI, Response
-from tensorflow import keras
+import keras
 from random import shuffle
 
 import mlflow
@@ -65,7 +65,7 @@ async def do_training(train_config: dict) -> dict:
             os.environ["MLFLOW_TRACKING_USERNAME"] = train_config["global_model_user"]
             os.environ["MLFLOW_TRACKING_PASSWORD"] = train_config["global_model_password"]
         mlflow.set_tracking_uri(train_config["global_model_host"])
-        app.model.neural_network = mlflow.tensorflow.load_model(train_config["global_model_id"])
+        app.model.neural_network = mlflow.keras.load_model(train_config["global_model_id"])
         if "global_model_user" in train_config and "global_model_password" in train_config:
             del os.environ["MLFLOW_TRACKING_USERNAME"]
             del os.environ["MLFLOW_TRACKING_PASSWORD"]
@@ -82,7 +82,7 @@ async def do_training(train_config: dict) -> dict:
     app.model.neural_network.fit(x_train, y_train,
                                  batch_size=train_config.get("batch_size", 64),
                                  shuffle=True,
-                                 epochs=train_config.get("epochs", 10),
+                                 epochs=train_config.get("epochs", 100),
                                  callbacks=[early_stopping])
 
     print("training finished, forwarding model shares")

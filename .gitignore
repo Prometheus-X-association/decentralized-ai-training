@@ -226,3 +226,4 @@ __marimo__/
 
 *.keras
 model.json
+05_test/mlflow.db
