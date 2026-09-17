@@ -2,6 +2,7 @@
 so used for mlflow server authenticaton testing."""
 import json
 import os
+from pathlib import Path
 import pytest
 import subprocess
 import time
@@ -18,6 +19,8 @@ AGGREGATOR_HEALTH_PORT = 9100
 MLFLOW_TRACKING_URI = f"http://localhost:{MLFLOW_PORT}"
 HEALTH_URI = f"http://localhost:{AGGREGATOR_HEALTH_PORT}/health"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
+
+DATA_PATH = Path(os.environ.get("DATA_PATH", "02_data")).resolve()
 
 NUM_CLIENTS = os.environ.get("NUM_CLIENTS", 3)
 
@@ -70,6 +73,7 @@ def aggregator_container(admin_config):
         [ "docker", "run", "--name", CONTAINER_NAME, "-d", "--rm",
             "-p", f"{MLFLOW_PORT}:5000",
             "-p", f"{AGGREGATOR_HEALTH_PORT}:8000",
+            "-v", f"{DATA_PATH}/agg_test:/data",
             AGGREGATOR_IMAGE],
         check=True
     )
