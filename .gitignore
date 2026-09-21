@@ -216,6 +216,7 @@ __marimo__/
 04_deploy/data_provider/data/**
 04_deploy/api/creds/exchange.env
 05_test/basic_auth_creds.json
+05_test/aggregator_test/dummy_models
 
 !04_deploy/.cache/dp1-data/.placeholder
 !04_deploy/.cache/dp2-data/.placeholder
