@@ -152,3 +152,8 @@ def health_port():
 def mlflow_client_number():
     """Fixture to get the number of MLflow clients."""
     return NUM_CLIENTS
+
+@pytest.fixture
+def data_path():
+    """Fixture to get the data path."""
+    return DATA_PATH

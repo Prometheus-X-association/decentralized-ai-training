@@ -50,4 +50,10 @@ def pull_test_data():
         f.write(y_test_binary.content)
     x_test = np.load("02_data/mnist/test_images.npy", allow_pickle=True)
     y_test = np.load("02_data/mnist/test_labels.npy", allow_pickle=True)
+
+    np.savez(
+        "02_data/agg_test/mnist_test.npz",
+        x_test=x_test,
+        y_test=y_test,
+    )
     return x_test, y_test

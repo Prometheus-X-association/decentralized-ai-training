@@ -64,6 +64,7 @@ def test_aggregation_success(aggregator_container, as_user, experiment_name, mlf
     run_ids = get_run_ids(experiment_name)
     pull_train_data(mlflow_client_number)
     client_ids = run_ids[1:]
+    x_test, y_test = pull_test_data()
     aggregation_config = {
         "local_model_hosts": [
             "http://localhost:5000"
@@ -90,7 +91,7 @@ def test_aggregation_success(aggregator_container, as_user, experiment_name, mlf
         client_name = f"client_{client_id}"
         client_reputations[client_name] = [reputations[client_name]]
 
-def test_pull_deltarep_model(aggregator_container, as_user, experiment_name):
+def test_pull_deltarep_model(aggregator_container, as_user, experiment_name, data_path):
     as_user("admin")
     experiment = mlflow.get_experiment_by_name(experiment_name)
     prev_agg_id = get_run_ids(experiment_name)[0]
@@ -114,7 +115,8 @@ def test_pull_deltarep_model(aggregator_container, as_user, experiment_name):
         metrics=["accuracy"],
     )
 
-    x_test, y_test = pull_test_data()
+    x_test = np.load(data_path / "mnist" / "test_images.npy", allow_pickle=True)
+    y_test = np.load(data_path / "mnist" / "test_labels.npy", allow_pickle=True)
     new_aggregated_loss, new_aggregated_accuracy = new_aggregated_model.evaluate(x_test, y_test, verbose=0)
     previous_aggregated_loss, previous_aggregated_accuracy = previous_aggregated_model.evaluate(x_test, y_test, verbose=0)
     assert new_aggregated_loss <= previous_aggregated_loss
