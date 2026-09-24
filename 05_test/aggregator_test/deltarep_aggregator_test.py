@@ -82,11 +82,13 @@ def test_aggregation_success(aggregator_container, as_user, experiment_name, mlf
         "global_model_uri": f"runs:/{run_ids[0]}/aggregated_model"            
     }
     response = requests.post("http://localhost:9100/aggregate_models", json=aggregation_config)
+    assert response.status_code == 200, (
+         f"Aggregation failed with status code {response.status_code}: {response.text}"
+    )
     reputations = response.json()["reputations_scores"]
     for client_id in range(mlflow_client_number):
         client_name = f"client_{client_id}"
         client_reputations[client_name] = [reputations[client_name]]
-    assert response.status_code == 200
 
 def test_pull_deltarep_model(aggregator_container, as_user, experiment_name):
     as_user("admin")

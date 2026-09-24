@@ -68,6 +68,10 @@ jobs:
 
       - name: Run ${{ matrix.suite}}
         run: pytest ${{ matrix.test_path }}
+
+      - name: Show aggregator container logs
+        if: failure()
+        run: docker logs mlflow-auth-test || true
         
       # Always run the cleanup step, even if the tests fail
       - name: Clean up container
