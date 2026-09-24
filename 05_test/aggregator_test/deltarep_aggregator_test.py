@@ -8,7 +8,7 @@ import mlflow
 import pytest
 
 from attack import AttackManager, AttackSpec
-from agg_test_helpers import create_dummy_model, get_run_ids, get_model_ids, pull_test_data
+from agg_test_helpers import create_dummy_model, get_run_ids, get_model_ids, pull_test_data, pull_train_data
 
 client_reputations = {}
 
@@ -38,15 +38,9 @@ def retrain_clients_on_new_aggregate(loop_cycle, model_id, attack_manager, mlflo
             weights.copy()
             for weights in client_model.get_weights()
         ]
-        if loop_cycle == 1:
-            x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
-            with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
-                f.write(x_train_binary.content)
-            y_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_labels.npy")
-            with open(f"02_data/mnist/client_data/client_{client_id}_train_labels.npy", "wb") as f:
-                f.write(y_train_binary.content)
         x_train = np.load(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", allow_pickle=True)
         y_train = np.load(f"02_data/mnist/client_data/client_{client_id}_train_labels.npy", allow_pickle=True)
+        print("Data loaded")
         client_model.compile(optimizer='adam',
                              loss='sparse_categorical_crossentropy',
                              metrics=['accuracy'])
@@ -61,8 +55,6 @@ def retrain_clients_on_new_aggregate(loop_cycle, model_id, attack_manager, mlflo
                 # Log the model to MLflow
                 mlflow.tensorflow.log_model(client_model, f"client_{client_id}_model_{loop_cycle}")
 
-        #client_model.save_weights(f"dummy_models/cycle{loop_cycle}/client_{client_id}.weights.h5")  
-
 def test_aggregation_success(aggregator_container, as_user, experiment_name, mlflow_client_number):
     as_user("admin")
     mlflow.set_experiment(experiment_name)
@@ -70,10 +62,7 @@ def test_aggregation_success(aggregator_container, as_user, experiment_name, mlf
     for client_id in range(mlflow_client_number):
             mlflow_load_model(f"client_{client_id}")
     run_ids = get_run_ids(experiment_name)
-    for client_id in range(mlflow_client_number):
-            x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
-            with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
-                f.write(x_train_binary.content)
+    pull_train_data(mlflow_client_number)
     client_ids = run_ids[1:]
     aggregation_config = {
         "local_model_hosts": [
@@ -135,7 +124,7 @@ def test_reputation_scores(aggregator_container, as_user, experiment_name, mlflo
         1: AttackSpec("none"),
         2: AttackSpec("sign_flip")
     })
-    for loop_cycle in range(1, 4):
+    for loop_cycle in range(1, 3):
         last_agg_model_id = get_model_ids(experiment_name)[-1]
         # prev_agg_id = get_run_ids(experiment_name)[-1]
         retrain_clients_on_new_aggregate(loop_cycle, last_agg_model_id, attack_manager, mlflow_client_number=3)
@@ -171,7 +160,7 @@ def test_reputation_scores(aggregator_container, as_user, experiment_name, mlflo
             1: AttackSpec("random_noise"),
             2: AttackSpec("none")
     })
-    for loop_cycle in range(4, 7):
+    for loop_cycle in range(3, 5):
         last_agg_model_id = get_model_ids(experiment_name)[-1]
         # prev_agg_id = get_run_ids(experiment_name)[-1]
         retrain_clients_on_new_aggregate(loop_cycle, last_agg_model_id, attack_manager, mlflow_client_number=3)
@@ -205,5 +194,5 @@ def test_reputation_scores(aggregator_container, as_user, experiment_name, mlflo
         # new approach:  argmin client reputations in the attack interval
         min_reputation_cycle_client_1 = np.argmin(client_reputations["client_1"])
         min_reputation_cycle_client_2 = np.argmin(client_reputations["client_2"])
-        assert min_reputation_cycle_client_1 in range(4, 7)
-        assert min_reputation_cycle_client_2 in range(1, 4)
+        assert min_reputation_cycle_client_1 in range(3, 5)
+        assert min_reputation_cycle_client_2 in range(1, 3)

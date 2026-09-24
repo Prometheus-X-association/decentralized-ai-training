@@ -6,7 +6,7 @@ from tensorflow import keras
 import mlflow
 import pytest
 
-from agg_test_helpers import create_dummy_model, get_run_ids, pull_test_data
+from agg_test_helpers import create_dummy_model, get_run_ids, pull_test_data, pull_train_data
 
 def mlflow_log_client_model(client_id):
     response = requests.get(f"http://localhost:8555/client_{client_id}.weights.h5")
@@ -47,10 +47,7 @@ def pull_all_models(as_user, experiment_name):
 def test_fedavg_aggregation(aggregator_container, as_user, experiment_name, mlflow_client_number):
     mlflow_load_client_model(as_user, experiment_name, mlflow_client_number)
     run_ids = get_run_ids(experiment_name)
-    for client_id in range(mlflow_client_number):
-        x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
-        with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
-            f.write(x_train_binary.content)
+    pull_train_data(mlflow_client_number)
     aggregation_config = {
         "local_model_hosts": [
             "http://localhost:5000"

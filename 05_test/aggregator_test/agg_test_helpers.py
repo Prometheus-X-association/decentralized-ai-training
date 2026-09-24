@@ -30,6 +30,15 @@ def get_model_ids(experiment_name):
     model_ids = [model.model_id for model in models]
     return model_ids
 
+def pull_train_data(number_of_clients):
+    for client_id in range(number_of_clients):
+        x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
+        with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
+            f.write(x_train_binary.content)
+        y_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_labels.npy")
+        with open(f"02_data/mnist/client_data/client_{client_id}_train_labels.npy", "wb") as f:
+            f.write(y_train_binary.content)
+
 def pull_test_data():
     x_test_binary = requests.get("http://localhost:8555/test-data/test_images.npy")
     x_test_binary.raise_for_status()
