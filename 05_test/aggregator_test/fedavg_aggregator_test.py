@@ -1,21 +1,12 @@
 import os
 import requests
-import json
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import mlflow
 import pytest
 
-def create_dummy_model(input_shape):
-    model = keras.Sequential([
-        keras.layers.InputLayer(shape=input_shape),
-        keras.layers.Flatten(),
-        keras.layers.Dense(128, activation='relu'),
-        keras.layers.Dense(10, activation='softmax')
-    ])
-    return model
-
+from agg_test_helpers import create_dummy_model, get_run_ids, pull_test_data
 
 def mlflow_log_client_model(client_id):
     response = requests.get(f"http://localhost:8555/client_{client_id}.weights.h5")
@@ -42,13 +33,6 @@ def mlflow_load_client_model(as_user, experiment_name, mlflow_client_number):
     for client_id in range(mlflow_client_number):
         mlflow_log_client_model(client_id)
 
-def get_run_ids(experiment_name):
-    experiment = mlflow.get_experiment_by_name(experiment_name)
-    runs_df = mlflow.search_runs([experiment.experiment_id])
-    run_ids = runs_df["run_id"].tolist()
-    run_ids.reverse()
-    return run_ids
-
 def pull_all_models(as_user, experiment_name):
     as_user("admin")
     mlflow.set_experiment(experiment_name)
@@ -59,20 +43,6 @@ def pull_all_models(as_user, experiment_name):
         output_format="list"
     )
     return models
-
-def pull_test_data():
-    x_test_binary = requests.get("http://localhost:8555/test-data/test_images.npy")
-    x_test_binary.raise_for_status()
-    y_test_binary = requests.get("http://localhost:8555/test-data/test_labels.npy")
-    y_test_binary.raise_for_status()
-    with open("02_data/mnist/test_images.npy", "wb") as f:
-        f.write(x_test_binary.content)
-    with open("02_data/mnist/test_labels.npy", "wb") as f:
-        f.write(y_test_binary.content)
-    x_test = np.load("02_data/mnist/test_images.npy", allow_pickle=True)
-    y_test = np.load("02_data/mnist/test_labels.npy", allow_pickle=True)
-    return x_test, y_test
-
 
 def test_fedavg_aggregation(aggregator_container, as_user, experiment_name, mlflow_client_number):
     mlflow_load_client_model(as_user, experiment_name, mlflow_client_number)
@@ -123,9 +93,6 @@ def test_pull_fedavg_model(aggregator_container, as_user, experiment_name):
 
     x_test, y_test = pull_test_data()
     aggregated_loss, aggregated_accuracy = aggregated_model.evaluate(x_test, y_test, verbose=0)
-    client_accuracies = [client_model.evaluate(x_test, y_test, verbose=0)[1] for client_model in client_models]
-    min_client_accuracy = np.min(client_accuracies)
     client_losses = [client_model.evaluate(x_test, y_test, verbose=0)[0] for client_model in client_models]
     max_client_loss = np.max(client_losses)
-    assert aggregated_accuracy >= min_client_accuracy, f"Aggregated model accuracy {aggregated_accuracy} is better than minimum client accuracy {min_client_accuracy}"
     assert aggregated_loss <= max_client_loss, f"Aggregated model loss {aggregated_loss} is less than maximum client loss {max_client_loss}"

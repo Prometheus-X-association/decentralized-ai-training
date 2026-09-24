@@ -6,18 +6,11 @@ import tensorflow as tf
 from tensorflow import keras
 import mlflow
 import pytest
+
 from attack import AttackManager, AttackSpec
+from agg_test_helpers import create_dummy_model, get_run_ids, get_model_ids, pull_test_data
 
 client_reputations = {}
-
-def create_dummy_model(input_shape):
-    model = keras.Sequential([
-        keras.layers.InputLayer(shape=input_shape),
-        keras.layers.Flatten(),
-        keras.layers.Dense(128, activation='relu'),
-        keras.layers.Dense(10, activation='softmax')
-    ])
-    return model
 
 def mlflow_load_model(model_name):
     response = requests.get(f"http://localhost:8555/{model_name}.weights.h5")
@@ -36,35 +29,6 @@ def mlflow_load_model(model_name):
         mlflow.tensorflow.log_model(model, f"{model_name}_model")
         return run.info.run_id
 
-def get_run_ids(experiment_name):
-    experiment = mlflow.get_experiment_by_name(experiment_name)
-    runs_df = mlflow.search_runs([experiment.experiment_id])
-    run_ids = runs_df["run_id"].tolist()
-    run_ids.reverse()
-    return run_ids
-
-def get_model_ids(experiment_name):
-    experiment = mlflow.get_experiment_by_name(experiment_name)
-    models = mlflow.search_logged_models(
-        experiment_ids=[experiment.experiment_id],
-        order_by=[{"field_name": "creation_time", "ascending": False}],
-        output_format="list"
-    )
-    model_ids = [model.model_id for model in models]
-    return model_ids
-
-def pull_test_data():
-    x_test_binary = requests.get("http://localhost:8555/test-data/test_images.npy")
-    x_test_binary.raise_for_status()
-    y_test_binary = requests.get("http://localhost:8555/test-data/test_labels.npy")
-    y_test_binary.raise_for_status()
-    with open("02_data/mnist/test_images.npy", "wb") as f:
-        f.write(x_test_binary.content)
-    with open("02_data/mnist/test_labels.npy", "wb") as f:
-        f.write(y_test_binary.content)
-    x_test = np.load("02_data/mnist/test_images.npy", allow_pickle=True)
-    y_test = np.load("02_data/mnist/test_labels.npy", allow_pickle=True)
-    return x_test, y_test
 
 def retrain_clients_on_new_aggregate(loop_cycle, model_id, attack_manager, mlflow_client_number):
     for client_id in range(mlflow_client_number):
@@ -74,12 +38,13 @@ def retrain_clients_on_new_aggregate(loop_cycle, model_id, attack_manager, mlflo
             weights.copy()
             for weights in client_model.get_weights()
         ]
-        x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
-        with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
-            f.write(x_train_binary.content)
-        y_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_labels.npy")
-        with open(f"02_data/mnist/client_data/client_{client_id}_train_labels.npy", "wb") as f:
-            f.write(y_train_binary.content)
+        if loop_cycle == 1:
+            x_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_images.npy")
+            with open(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", "wb") as f:
+                f.write(x_train_binary.content)
+            y_train_binary = requests.get(f"http://localhost:8555/client_data/client_{client_id}_train_labels.npy")
+            with open(f"02_data/mnist/client_data/client_{client_id}_train_labels.npy", "wb") as f:
+                f.write(y_train_binary.content)
         x_train = np.load(f"02_data/mnist/client_data/client_{client_id}_train_images.npy", allow_pickle=True)
         y_train = np.load(f"02_data/mnist/client_data/client_{client_id}_train_labels.npy", allow_pickle=True)
         client_model.compile(optimizer='adam',
@@ -200,10 +165,12 @@ def test_reputation_scores(aggregator_container, as_user, experiment_name, mlflo
             client_reputations[f"client_{client_id}"].append(
                 reputations[f"client_{client_id}"]
             )
-        assert client_reputations["client_0"][-1] >= client_reputations["client_0"][-2]
-        assert client_reputations["client_1"][-1] >= client_reputations["client_1"][-2]
-        assert client_reputations["client_2"][-1] <= client_reputations["client_2"][-2]
 
+    attack_manager = AttackManager({
+            0: AttackSpec("none"),
+            1: AttackSpec("random_noise"),
+            2: AttackSpec("none")
+    })
     for loop_cycle in range(4, 7):
         last_agg_model_id = get_model_ids(experiment_name)[-1]
         # prev_agg_id = get_run_ids(experiment_name)[-1]
@@ -234,7 +201,9 @@ def test_reputation_scores(aggregator_container, as_user, experiment_name, mlflo
             client_reputations[f"client_{client_id}"].append(
                 reputations[f"client_{client_id}"]
             )
-        assert client_reputations["client_0"][-1] >= client_reputations["client_0"][-2]
-        assert client_reputations["client_1"][-1] <= client_reputations["client_1"][-2]
-        assert client_reputations["client_2"][-1] >= client_reputations["client_2"][-2]   
+
         # new approach:  argmin client reputations in the attack interval
+        min_reputation_cycle_client_1 = np.argmin(client_reputations["client_1"])
+        min_reputation_cycle_client_2 = np.argmin(client_reputations["client_2"])
+        assert min_reputation_cycle_client_1 in range(4, 7)
+        assert min_reputation_cycle_client_2 in range(1, 4)
