@@ -66,6 +66,10 @@ jobs:
       - name: Pulling aggregator image
         run: docker pull ghcr.io/${{ secrets.SECRET_GITHUB_USER }}/aggregator:test-auth
 
+      - name: Prepare aggregator test data directory
+        if: matrix.suite != 'mlflow_auth_test'
+        run: mkdir -p 02_data/agg_test
+
       - name: Run ${{ matrix.suite}}
         run: pytest ${{ matrix.test_path }}
 
