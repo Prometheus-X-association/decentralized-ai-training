@@ -232,6 +232,9 @@ async def do_training(aggregation_tree: Annotated[
     # Aggregating results:
     # lower level aggregators:
     for level in range(aggtp.get_level_counts()):
+        print(f"aggregating level {level} models")
+        print("model_sources: ", model_sources)
+        print("model_ids: ", model_ids)
         level_aggs = aggtp.get_aggregator_level(
             level,
             model_sources=model_sources,

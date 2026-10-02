@@ -89,10 +89,11 @@ async def do_training(train_config: dict) -> dict:
 
     if len(train_config["forward_model_to"]) != 1:
         shares = share_tools.create_shares(app.model.neural_network, len(train_config["forward_model_to"]))
+        shuffle(shares)
     else:
         shares = [app.model.neural_network]
 
-    shuffle(shares)
+    
 
     model_ids = []
     for share, forward_to in zip(shares, train_config["forward_model_to"]):
@@ -117,5 +118,5 @@ async def do_training(train_config: dict) -> dict:
         model_ids.append(model_id)
     return {
         "n_samples": len(x_train),
-        "model_ids": model_ids
+        "model_ids": model_ids if len(model_ids) > 1 else model_ids[0]
     }

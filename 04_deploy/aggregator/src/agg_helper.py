@@ -92,7 +92,10 @@ async def aggregate_models(aggregation_config: dict,
         models[source] = await load_model(f"{model_path}/{model_id}", lock_name)
         deltarep_n_samples[source] = aggregation_config["local_data_sizes"][
             aggregation_config["model_sources"].index(source)]
-        reputations["participation"][source] += 1
+        if source not in reputations["participation"]:
+            reputations["participation"][source] = 1
+        else:
+            reputations["participation"][source] += 1
 
     print("fedavg calculation started"
           if aggregation_config["aggregation_algorithm"] == "fedavg"

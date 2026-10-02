@@ -1,0 +1,280 @@
+services:
+  ### Base images
+  base_alpine:
+    image: ghcr.io/alelevente/base_alpine:latest
+    build:
+      context: base_alpine
+      dockerfile: Dockerfile
+    networks:
+      - edge_test
+  base_slim:
+    image: ghcr.io/alelevente/base_slim:latest
+    build:
+      context: base_slim
+      dockerfile: Dockerfile
+    networks:
+      - edge_test
+
+  ### For local development
+  data-provider:
+    image: ghcr.io/alelevente/data_provider:latest
+    build:
+      context: data_provider
+      dockerfile: Dockerfile
+      additional_contexts:
+        base_alpine: "service:base_alpine"
+      pull: false
+    container_name: data-provider
+    environment:
+      - DATA_PATH=/data_provider/data
+    networks:
+      - edge_test
+    volumes:
+      - "./data_provider/data:/data_provider/data:ro"
+      - "./data_provider/src:/data_provider/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  ### Initializer containers
+  dp1-init:
+    image: busybox:latest
+    container_name: dp1-init
+    command:
+      - "sh"
+      - "-c"
+      - 'if [ ! -f "/var/cache/$${NAME}" ]; then wget -O "/var/cache/$${NAME}" "$${URL}"; else echo "SKIP"; fi;'
+    environment:
+      #URL: https://github.com/czeni/sample-datasets/blob/main/federated/dp1/train_data.npz
+      URL: http://data-provider:8000/get_data?dp_id=dp1
+      NAME: train_data.npz
+    networks:
+      - edge_test
+    volumes:
+      - dp1-data:/var/cache
+    depends_on:
+      data-provider:
+        condition: service_healthy
+
+  dp2-init:
+    image: busybox:latest
+    container_name: dp2-init
+    command:
+      - "sh"
+      - "-c"
+      - 'if [ ! -f "/var/cache/$${NAME}" ]; then wget -O "/var/cache/$${NAME}" "$${URL}"; else echo "SKIP"; fi;'
+    environment:
+      #URL: https://github.com/czeni/sample-datasets/blob/main/federated/dp2/train_data.npz
+      URL: http://data-provider:8000/get_data?dp_id=dp2
+      NAME: train_data.npz
+    networks:
+      - edge_test
+    volumes:
+      - dp2-data:/var/cache
+    depends_on:
+      data-provider:
+        condition: service_healthy
+
+  ### Federated learning app
+  dp1:
+    image: ghcr.io/alelevente/data_processor:latest
+    build:
+      context: data_processor
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: data-processor-0
+    #ports:
+    #  - "5011:5000"
+    #  - "9011:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "dp1-data:/data:ro"
+      - "./data_processor/src:/data_processor/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+    depends_on:
+      dp1-init:
+        condition: service_completed_successfully
+
+  dp2:
+    image: ghcr.io/alelevente/data_processor:latest
+    build:
+      context: data_processor
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: data-processor-1
+    #ports:
+    #  - "5012:5000"
+    #  - "9012:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "dp2-data:/data:ro"
+      - "./data_processor/src:/data_processor/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+    depends_on:
+      dp2-init:
+        condition: service_completed_successfully
+
+  aggregator1:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-1
+    ports:
+      #- "5101:5000"
+      - "9100:8000"
+    #environment:
+      #- STATIC_PREFIX_MLFLOW=/worker/aggregator
+      #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000/worker/aggregator
+      #- mlflow_tracking_uri_external=http://localhost:5100/worker/aggregator
+      #- STATIC_PREFIX_API=/worker/aggregator
+      #
+      #- mlflow_tracking_uri_internal=http://localhost:5000
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000
+      #- mlflow_tracking_uri_external=http://localhost:5100
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator2:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-2
+    ports:
+      #- "5102:5000"
+      - "9101:8000"
+    #environment:
+      #- STATIC_PREFIX_MLFLOW=/worker/aggregator
+      #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000/worker/aggregator
+      #- mlflow_tracking_uri_external=http://localhost:5100/worker/aggregator
+      #- STATIC_PREFIX_API=/worker/aggregator
+      #
+      #- mlflow_tracking_uri_internal=http://localhost:5000
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000
+      #- mlflow_tracking_uri_external=http://localhost:5100
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator-top:
+    image: ghcr.io/alelevente/top-level-aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-top
+    ports:
+      - "5100:5000"
+      - "8000:8000"
+    environment:
+      #- STATIC_PREFIX_MLFLOW=/worker/aggregator
+      #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
+      #- mlflow_tracking_uri_organizational=http://aggregator:5000/worker/aggregator
+      #- mlflow_tracking_uri_external=http://localhost:5100/worker/aggregator
+      #- STATIC_PREFIX_API=/worker/aggregator
+      #
+      #- mlflow_tracking_uri_internal=http://localhost:5000
+      - mlflow_tracking_uri_organizational=http://aggregator-top:5000
+      - mlflow_tracking_uri_external=http://localhost:5100
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  orchestrator:
+    image: ghcr.io/alelevente/orchestrator:latest
+    build:
+      context: orchestrator
+      additional_contexts:
+        base_alpine: "service:base_alpine"
+      pull: false
+    container_name: orchestrator
+    ports:
+      - "8100:8000"
+    #environment:
+    #  - STATIC_PREFIX_API=/worker/orchestrator
+    networks:
+      - edge_test
+    volumes:
+      - "./orchestrator/src:/orchestrator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+    depends_on:
+      dp1:
+        condition: service_healthy
+      dp2:
+        condition: service_healthy
+      aggregator1:
+        condition: service_healthy
+      aggregator2:
+        condition: service_healthy
+      aggregator-top:
+        condition: service_healthy
+
+### Intermediate data volumes
+volumes:
+  dp1-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: .cache/dp1-data
+  dp2-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: .cache/dp2-data
+
+networks:
+  # Custom network
+  edge_test:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+  # No default network
+  default:
+    external: true
+    name: none
+           
+

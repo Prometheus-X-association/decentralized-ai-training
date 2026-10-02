@@ -53,13 +53,18 @@ class AggregationTreeProcessor:
             if source is None:
                 raise ValueError(f"Source URL {source_url} not found in aggregation tree")
             
-            
-            for k in range(len(model_ids[i])):
-                model_id = model_ids[i][k]
-                target = source["forward_model_to"][k]
+            if len(source["forward_model_to"]) == 1:
+                target = source["forward_model_to"][0]
                 if target not in target_map:
                     target_map[target] = []
-                target_map[target].append(model_id)
+                target_map[target].append(model_ids[i])
+            else:
+                for k in range(len(model_ids[i])):
+                    model_id = model_ids[i][k]
+                    target = source["forward_model_to"][k]
+                    if target not in target_map:
+                        target_map[target] = []
+                    target_map[target].append(model_id)
         return target_map
 
 
