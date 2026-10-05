@@ -221,5 +221,9 @@ __marimo__/
 !04_deploy/.cache/dp2-data/.placeholder
 !02_data/mnist/.placeholder
 !02_data/mnist/client_data/.placeholder
+!02_data/models/.placeholder
 !03_dev/share_sim/client_data/.placeholder
 
+*.keras
+model.json
+05_test/mlflow.db

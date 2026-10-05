@@ -5,8 +5,7 @@ WORKDIR /data_processor
 #COPY dp_runner.sh .
 COPY ./ ./
 #RUN chmod +x dp_runner.sh
+RUN pip3 install --no-cache-dir -U mlflow-skinny
 EXPOSE 8000
-EXPOSE 5000
-ENV mlflow_tracking_uri_internal=http://localhost:5000
 #CMD ./dp_runner.sh
 CMD [ "bash", "dp_runner.sh" ]

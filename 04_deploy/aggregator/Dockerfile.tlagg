@@ -1,12 +1,11 @@
 FROM ghcr.io/alelevente/base_slim:latest
 WORKDIR /aggregator
-#COPY src/aggregator.py .
-#COPY src/model.py .
-#COPY agg_runner.sh .
-#COPY src/agg_algorithms.py .
-#COPY cfg/mlflow_admin.json /cfg/mlflow_admin.json
+
+#copy for top level aggregator:
 COPY ./ ./
-RUN chmod +x agg_runner.sh
+COPY top_level_agg_runner.sh .
+
+RUN chmod +x top_level_agg_runner.sh
 RUN pip install --no-cache-dir 'mlflow[auth]'
 EXPOSE 8000
 EXPOSE 5000
@@ -14,7 +13,7 @@ EXPOSE 5000
 ENV MLFLOW_FLASK_SERVER_SECRET_KEY="QlZzjbifUtn2bEGPl5OM0FZ8Je7BmI7SpqMgo6jsyNI"
 ##if test_deploy:
 ENV MLFLOW_BASIC_AUTH=true
-ENV mlflow_tracking_uri_internal=http://localhost:5000
+ENV MLFLOW_TRACKING_URI_INTERNAL=http://localhost:5000
 ENV MLFLOW_AUTH_CONFIG_PATH=cfg/basic_auth.ini
-#CMD ./agg_runner.sh
-CMD [ "bash", "agg_runner.sh" ]
+
+CMD [ "bash", "top_level_agg_runner.sh" ]

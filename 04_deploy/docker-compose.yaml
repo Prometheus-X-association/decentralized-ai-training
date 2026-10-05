@@ -88,9 +88,6 @@ services:
     #ports:
     #  - "5011:5000"
     #  - "9011:8000"
-    environment:
-      #- mlflow_tracking_uri_internal=http://localhost:5000
-      - mlflow_tracking_uri_organizational=http://dp1:5000
     networks:
       - edge_test
     volumes:
@@ -115,9 +112,6 @@ services:
     #ports:
     #  - "5012:5000"
     #  - "9012:8000"
-    environment:
-      #- mlflow_tracking_uri_internal=http://localhost:5000
-      - mlflow_tracking_uri_organizational=http://dp2:5000
     networks:
       - edge_test
     volumes:
@@ -131,26 +125,138 @@ services:
       dp2-init:
         condition: service_completed_successfully
 
-  aggregator:
+  aggregator1:
     image: ghcr.io/alelevente/aggregator:latest
     build:
       context: aggregator
       additional_contexts:
         base_slim: "service:base_slim"
       pull: false
-    container_name: aggregator
+    container_name: aggregator-1
+    ports:
+      - "9100:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator2:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-2
+    ports:
+      - "9101:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator3:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-3
+    ports:
+      - "9102:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator4:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-4
+    ports:
+      - "9103:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator5:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-5
+    ports:
+      - "9104:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+  aggregator6:
+    image: ghcr.io/alelevente/aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-6
+    ports:
+      - "9105:8000"
+    networks:
+      - edge_test
+    volumes:
+      - "../02_data/agg_test:/data:ro"
+      - "./aggregator/src:/aggregator/src"  # Only for development
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -O /dev/null http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+
+  aggregator-top:
+    image: ghcr.io/alelevente/top-level-aggregator:latest
+    build:
+      context: aggregator
+      additional_contexts:
+        base_slim: "service:base_slim"
+      pull: false
+    container_name: aggregator-top
     ports:
       - "5100:5000"
-      - "9100:8000"
+      - "8000:8000"
     environment:
-      #- STATIC_PREFIX_MLFLOW=/worker/aggregator
-      #- mlflow_tracking_uri_internal=http://localhost:5000/worker/aggregator
-      #- mlflow_tracking_uri_organizational=http://aggregator:5000/worker/aggregator
-      #- mlflow_tracking_uri_external=http://localhost:5100/worker/aggregator
-      #- STATIC_PREFIX_API=/worker/aggregator
-      #
-      #- mlflow_tracking_uri_internal=http://localhost:5000
-      - mlflow_tracking_uri_organizational=http://aggregator:5000
+      - mlflow_tracking_uri_organizational=http://aggregator-top:5000
       - mlflow_tracking_uri_external=http://localhost:5100
     networks:
       - edge_test
@@ -187,7 +293,19 @@ services:
         condition: service_healthy
       dp2:
         condition: service_healthy
-      aggregator:
+      aggregator1:
+        condition: service_healthy
+      aggregator2:
+        condition: service_healthy
+      aggregator3:
+        condition: service_healthy
+      aggregator4:
+        condition: service_healthy
+      aggregator5:
+        condition: service_healthy
+      aggregator6:
+        condition: service_healthy
+      aggregator-top:
         condition: service_healthy
 
 ### Intermediate data volumes

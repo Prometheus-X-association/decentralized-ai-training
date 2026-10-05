@@ -1,0 +1,11 @@
+FROM ghcr.io/alelevente/base_slim:latest
+WORKDIR /aggregator
+
+#copy files for aggregator:
+COPY src/. .
+COPY agg_runner.sh .
+
+RUN chmod +x agg_runner.sh
+EXPOSE 8000
+
+CMD [ "bash", "agg_runner.sh" ]
