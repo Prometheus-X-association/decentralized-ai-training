@@ -1,0 +1,83 @@
+name: Aggregator Component Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 20 * * SUN' # Runs every Sunday at 20:00 
+      timezone: 'Europe/Budapest' # Set the timezone to Europe/Budapest
+  workflow_dispatch:
+
+jobs:
+  aggregator-test:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # Do not stop other jobs if one fails
+      #max-parallel: 1 # Limit the number of parallel jobs to 1, only on local act
+      matrix:
+        suite: [fedavg_aggregator_test, mlflow_auth_test]
+        include:
+          - suite: fedavg_aggregator_test
+            test_path: 05_test/aggregator_test/fedavg_aggregator_test.py
+          # - suite: deltarep_aggregator_test
+          #   test_path: 05_test/aggregator_test/deltarep_aggregator_test.py
+          - suite: mlflow_auth_test
+            test_path: 05_test/mlflow_auth_test/mlflow_auth_test.py
+
+    env:
+      GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      AGGREGATOR_PASSWORD: ${{ secrets.AGGREGATOR_PASSWORD }}
+      MODEL_USER_PASSWORD: ${{ secrets.MODEL_USER_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Open SSH tunnel in background
+        run: |
+          sshpass -p "${{ secrets.FURED_SSH_PASSWORD }}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=6  \
+            -p 1029 -fN -L 8555:localhost:8555 \
+            cloud@vm.fured.cloud.bme.hu
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12  
+
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.SECRET_GITHUB_USER }}
+          password: ${{ secrets.SECRET_GITHUB_TOKEN }}
+      
+      - name: Pulling aggregator image
+        run: docker pull ghcr.io/${{ secrets.SECRET_GITHUB_USER }}/aggregator:test
+
+      - name: Prepare aggregator test data directory
+        if: matrix.suite != 'mlflow_auth_test'
+        run: mkdir -p 02_data/agg_test
+
+      - name: Run ${{ matrix.suite}}
+        run: pytest ${{ matrix.test_path }}
+
+      - name: Show aggregator container logs
+        if: failure()
+        run: docker logs mlflow-auth-test || true
+        
+      # Always run the cleanup step, even if the tests fail
+      - name: Clean up container
+        if: always()
+        run: docker rm -f mlflow-auth-test || true

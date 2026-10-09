@@ -2,22 +2,29 @@
 so used for mlflow server authenticaton testing."""
 import json
 import os
+from pathlib import Path
 import pytest
 import subprocess
 import time
 import mlflow
 import requests
 
-GITHUB_USER = os.environ.get("GITHUB_USER")
+GITHUB_USER = os.environ.get("GITHUB_USER", "bencefarkas27")
 AGGREGATOR_DOCKERFILE_DIR = os.environ.get("AGGREGATOR_DOCKERFILE_DIR", "04_deploy/aggregator")
-AGGREGATOR_IMAGE = os.environ.get("AGGREGATOR_IMAGE", f"ghcr.io/{GITHUB_USER}/aggregator:test-auth")
-CONTAINER_NAME = "mlflow-auth-test"
+AGGREGATOR_IMAGE = os.environ.get("AGGREGATOR_IMAGE", f"ghcr.io/{GITHUB_USER}/aggregator:test")
+CONTAINER_NAME = "aggregator-test"
 MLFLOW_PORT = 5100
 AGGREGATOR_HEALTH_PORT = 9100
 
 MLFLOW_TRACKING_URI = f"http://localhost:{MLFLOW_PORT}"
 HEALTH_URI = f"http://localhost:{AGGREGATOR_HEALTH_PORT}/health"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
+
+DATA_PATH = Path(os.environ.get("DATA_PATH", "02_data")).resolve()
+
+NUM_CLIENTS = os.environ.get("NUM_CLIENTS", 3)
+
+
 
 
 # Polling the health endpoint instead of guessing a fixed sleep duration, to make sure the mlflow server is started up
@@ -66,6 +73,7 @@ def aggregator_container(admin_config):
         [ "docker", "run", "--name", CONTAINER_NAME, "-d", "--rm",
             "-p", f"{MLFLOW_PORT}:5000",
             "-p", f"{AGGREGATOR_HEALTH_PORT}:8000",
+            "-v", f"{DATA_PATH}/agg_test:/data",
             AGGREGATOR_IMAGE],
         check=True
     )
@@ -139,4 +147,13 @@ def tracking_uri():
 def health_port():
     """Fixture to get the health port."""
     return AGGREGATOR_HEALTH_PORT
- 
+
+@pytest.fixture
+def mlflow_client_number():
+    """Fixture to get the number of MLflow clients."""
+    return NUM_CLIENTS
+
+@pytest.fixture
+def data_path():
+    """Fixture to get the data path."""
+    return DATA_PATH
