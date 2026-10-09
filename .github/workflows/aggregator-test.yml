@@ -17,14 +17,14 @@ jobs:
       fail-fast: false # Do not stop other jobs if one fails
       #max-parallel: 1 # Limit the number of parallel jobs to 1, only on local act
       matrix:
-        suite: [fedavg_aggregator_test] #, deltarep_aggregator_test, mlflow_auth_test]
+        suite: [fedavg_aggregator_test, mlflow_auth_test]
         include:
           - suite: fedavg_aggregator_test
             test_path: 05_test/aggregator_test/fedavg_aggregator_test.py
           # - suite: deltarep_aggregator_test
           #   test_path: 05_test/aggregator_test/deltarep_aggregator_test.py
-          # - suite: mlflow_auth_test
-          #   test_path: 05_test/mlflow_auth_test/mlflow_auth_test.py
+          - suite: mlflow_auth_test
+            test_path: 05_test/mlflow_auth_test/mlflow_auth_test.py
 
     env:
       GITHUB_USER: ${{ secrets.SECRET_GITHUB_USER }}
