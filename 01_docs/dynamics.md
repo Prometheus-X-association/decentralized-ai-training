@@ -25,31 +25,39 @@ When the top level aggregator creates the federated model, all the added noise w
 
 1. Once the building block is deployed, training initiators can query BB01's API through PDC for orchestrator's endpoint (including URI and corresponding credentials).
 
-2. Through the provided endpoint, training initiators can start the training process. To do so, training initiators shall define the aggregation architecture. The orchestrator expects a `json` file, listing the training clients (`data_processors` with their `uri`), and the aggregators (`aggregators` with their `uri`). For each data processor and aggregator a target MLFLow server's URI shall be given (`target_mlflow`). The only exception from this rule is the *top-level aggregator*, of which `target_mlflow` key shall have an empty string. Training initiators shall specify also the aggregation algorithm (`"aggregation_algorithm": "fedavg"` or `"aggregation_algorithm": "deltarep"`) For example:
+2. Through the provided endpoint, training initiators can start the training process. To do so, training initiators shall define the aggregation architecture. The orchestrator expects a `json` file, listing the training clients (`data_processors` with their `uri`), and the aggregators (`aggregators` with their `uri`). For each data processor and aggregator target aggregator URIs shall be given (`forward_model_to`). The only exception from this rule is the *top-level aggregator*, of which `forward_model_to` key shall have an empty string. For aggregators, training initiators shall specify whether or not an aggregator is `top_level_aggregator`, and its level in the aggregation tree, `aggregation_level`. The top-level-aggregator shall have the highest specified level, while those aggregators that are connected to data processors shall have an `aggregation_level` of 0. Training initiators shall specify also the aggregation algorithm (`"aggregation_algorithm": "fedavg"` or `"aggregation_algorithm": "deltarep"`) For example:
 ```json
 {
-    "data_processors": [
+    "processors": [
         {
             "uri": "http://data-processor-0:8000",
-            "target_mlflow": "http://aggregator-0:5000"
+            "train_data_uri": "/data/train_data.npz",
+            "forward_model_to": ["http://aggregator-1:8000", "http://aggregator-2:8000"]
         },
         {
             "uri": "http://data-processor-1:8000",
-            "target_mlflow": "http://aggregator-1:5000"
+            "train_data_uri": "/data/train_data.npz",
+            "forward_model_to": ["http://aggregator-1:8000", "http://aggregator-2:8000"]
         }
     ],
     "aggregators": [
         {
-            "uri": "http://aggregator-0:8000",
-            "target_mlflow": "http://aggregator-2:5000"
+            "uri":"http://aggregator-1:8000",
+            "forward_model_to": ["http://aggregator-top:8000"],
+            "top_level_aggregator": false,
+            "aggregation_level": 0
         },
         {
-            "uri": "http://aggregator-1:8000",
-            "target_mlflow": "http://aggregator-2:5000"
+            "uri":"http://aggregator-2:8000",
+            "forward_model_to": ["http://aggregator-top:8000"],
+            "top_level_aggregator": false,
+            "aggregation_level": 0
         },
         {
-            "uri": "http://aggregator-2:8000",
-            "target_mlflow": ""
+            "uri":"http://aggregator-top:8000",
+            "forward_model_to": [],
+            "top_level_aggregator": true,
+            "aggregation_level": 1
         }
     ],
     "aggregation_algorithm": "fedavg"
