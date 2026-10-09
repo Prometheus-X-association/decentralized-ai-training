@@ -11,8 +11,8 @@ import requests
 
 GITHUB_USER = os.environ.get("GITHUB_USER", "bencefarkas27")
 AGGREGATOR_DOCKERFILE_DIR = os.environ.get("AGGREGATOR_DOCKERFILE_DIR", "04_deploy/aggregator")
-AGGREGATOR_IMAGE = os.environ.get("AGGREGATOR_IMAGE", f"ghcr.io/{GITHUB_USER}/aggregator:test-auth")
-CONTAINER_NAME = "mlflow-auth-test"
+AGGREGATOR_IMAGE = os.environ.get("AGGREGATOR_IMAGE", f"ghcr.io/{GITHUB_USER}/aggregator:test")
+CONTAINER_NAME = "aggregator-test"
 MLFLOW_PORT = 5100
 AGGREGATOR_HEALTH_PORT = 9100
 
@@ -70,7 +70,7 @@ def aggregator_container(admin_config):
     """Build the aggregator image, run it, wait for it to be healthy,
     yield control to the tests, then always clean up."""
     subprocess.run(
-        [ "docker", "run", "--name", CONTAINER_NAME, "-d",
+        [ "docker", "run", "--name", CONTAINER_NAME, "-d", "--rm",
             "-p", f"{MLFLOW_PORT}:5000",
             "-p", f"{AGGREGATOR_HEALTH_PORT}:8000",
             "-v", f"{DATA_PATH}/agg_test:/data",

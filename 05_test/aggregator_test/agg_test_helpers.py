@@ -1,3 +1,6 @@
+import shutil
+import json
+import os
 import requests
 import numpy as np
 import tensorflow as tf
@@ -57,3 +60,39 @@ def pull_test_data():
         y_test=y_test,
     )
     return x_test, y_test
+
+def post_client_models_to_aggregator(mlflow_client_number):
+    for client_id in range(mlflow_client_number):
+        # 1. Download the model weights from the Fured cloud storage
+        response = requests.get(f"http://localhost:8555/client_{client_id}.weights.h5")
+        response.raise_for_status()  # raises an exception on 4xx/5xx instead of silently continuing
+        model_path = f"dummy_models/client_{client_id}"
+        os.makedirs(model_path, exist_ok=True)
+        # 2. Save the weights to a local file
+        weights_path = f"{model_path}/model.weights.h5"
+        with open(weights_path, "wb") as f:
+            f.write(response.content)
+        print(f"Client {client_id} weights downloaded.")
+        # 3. Reconstruct the model architecture and load the weights
+        input_shape = os.environ.get("MLFLOW_INPUT_SHAPE", (28, 28))
+        model = create_dummy_model(input_shape=input_shape)
+        model.load_weights(weights_path)
+        model.compile(optimizer='adam',
+                      loss='sparse_categorical_crossentropy',
+                      metrics=['accuracy'])
+        # 4. Save the model structure to a JSON file
+        model_structure = model.to_json()
+        with open(f"{model_path}/model.json", "w") as json_file:
+            json.dump(json.loads(model_structure), json_file)
+        # 5. Create a zip which contains both the model structure and the weights
+        shutil.make_archive("model", "zip", model_path)
+        with open("model.zip", "rb") as f:
+            model_data = f.read()
+        # 6. Post the model zip to the aggregator
+        response = requests.post(
+            f"http://localhost:9100/post_model",
+            params={"model_id": f"model_{client_id}"},
+            data=model_data
+        )
+        if response.status_code != 200:
+            raise Exception(f"Failed to forward model to aggregator: {response.text}")
