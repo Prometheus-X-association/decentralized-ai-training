@@ -8,7 +8,7 @@ import mlflow
 import pytest
 
 from attack import AttackManager, AttackSpec
-from agg_test_helpers import create_dummy_model, get_model_ids, post_model_to_aggregator, pull_test_data, pull_train_data, get_agg_config
+from agg_test_helpers import get_model_ids, post_model_to_aggregator, pull_test_data, pull_train_data, get_agg_config
 
 client_reputations = {}
 

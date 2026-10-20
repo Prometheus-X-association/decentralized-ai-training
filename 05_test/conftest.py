@@ -70,7 +70,7 @@ def aggregator_container(admin_config):
     """Build the aggregator image, run it, wait for it to be healthy,
     yield control to the tests, then always clean up."""
     subprocess.run(
-        [ "docker", "run", "--name", CONTAINER_NAME, "-d", "--rm",
+        [ "docker", "run", "--name", CONTAINER_NAME, "-d",
             "-p", f"{MLFLOW_PORT}:5000",
             "-p", f"{AGGREGATOR_HEALTH_PORT}:8000",
             "-v", f"{DATA_PATH}/agg_test:/data",
