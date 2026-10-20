@@ -12,7 +12,7 @@ from mlflow.server import get_app_client
 import agg_helper
 
 LOCK_NAME = ".edge_fl_lock"
-TEST_DATA_PATH = "/data/course_test.npz"
+TEST_DATA_PATH = "/data/mnist_test.npz"
 
 MLFLOW_USER_INFO = ".mlflow_user_info"
 MLFLOW_ADMIN_CONFIG_PATH = "/cfg/mlflow_admin.json"
@@ -141,7 +141,7 @@ async def do_aggregation(aggregation_config: dict) -> dict:
             - dict: {aggregated_model_host, aggregated_model_uri}
                 
     '''
-    combined_model = await agg_helper.aggregate_models(aggregation_config,
+    combined_model, reputations = await agg_helper.aggregate_models(aggregation_config,
                                                        LOCK_NAME,
                                                        MODELS_PATH,
                                                        TEST_DATA_PATH)
@@ -166,6 +166,9 @@ async def do_aggregation(aggregation_config: dict) -> dict:
     if "MLFLOW_BASIC_AUTH" in os.environ:
         answer["aggregated_model_username"] = "model_user"
         answer["aggregated_model_password"] = mlflow_user_info["model_user_password"]
+
+    if aggregation_config["aggregation_algorithm"] == "deltarep":
+        answer["reputations_scores"] = reputations
 
     return answer
 
