@@ -141,7 +141,7 @@ async def do_aggregation(aggregation_config: dict) -> dict:
             - dict: {aggregated_model_host, aggregated_model_uri}
                 
     '''
-    combined_model = await agg_helper.aggregate_models(aggregation_config,
+    combined_model, reputations = await agg_helper.aggregate_models(aggregation_config,
                                                        LOCK_NAME,
                                                        MODELS_PATH,
                                                        TEST_DATA_PATH)
@@ -166,6 +166,9 @@ async def do_aggregation(aggregation_config: dict) -> dict:
     if "MLFLOW_BASIC_AUTH" in os.environ:
         answer["aggregated_model_username"] = "model_user"
         answer["aggregated_model_password"] = mlflow_user_info["model_user_password"]
+
+    if aggregation_config["aggregation_algorithm"] == "deltarep":
+        answer["reputations_scores"] = reputations
 
     return answer
 

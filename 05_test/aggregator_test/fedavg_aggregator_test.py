@@ -6,25 +6,13 @@ from tensorflow import keras
 import mlflow
 import pytest
 
-from agg_test_helpers import create_dummy_model, get_model_ids, post_client_models_to_aggregator, pull_test_data, pull_train_data
+from agg_test_helpers import create_dummy_model, get_model_ids, post_model_to_aggregator, pull_test_data, pull_train_data, get_agg_config
 
 def test_fedavg_aggregation(aggregator_container, mlflow_client_number, data_path):
-    post_client_models_to_aggregator(mlflow_client_number)
+    for client_id in range(mlflow_client_number):
+        post_model_to_aggregator(f"dummy_models/client_{client_id}", f"client_{client_id}", f"model_{client_id}", model_to_upload=None)
     pull_train_data(mlflow_client_number)
-    aggregation_config = {
-        "model_sources": [
-            f"client_{client_id}" for client_id in range(mlflow_client_number)
-        ],
-        "model_ids": [
-            f"model_{client_id}" for client_id in range(mlflow_client_number)
-        ],
-        "local_data_sizes": [
-            len(np.load(f"{data_path}/mnist/client_data/client_{client_id}_train_images.npy"))
-            for client_id in range(mlflow_client_number)
-        ],
-        "aggregation_algorithm": "fedavg",
-        "forward_model_to": "http://top_aggregator:8000",
-    }
+    aggregation_config = get_agg_config(mlflow_client_number, data_path, "fedavg")
     response = requests.post("http://localhost:9100/aggregate_models", json=aggregation_config)
     assert response.status_code == 200
 
