@@ -80,4 +80,4 @@ jobs:
       # Always run the cleanup step, even if the tests fail
       - name: Clean up container
         if: always()
-        run: docker rm -f mlflow-auth-test || true
+        run: docker rm -f aggregator-test || true

@@ -12,7 +12,7 @@ from mlflow.server import get_app_client
 import agg_helper
 
 LOCK_NAME = ".edge_fl_lock"
-TEST_DATA_PATH = "/data/course_test.npz"
+TEST_DATA_PATH = "/data/mnist_test.npz"
 
 MLFLOW_USER_INFO = ".mlflow_user_info"
 MLFLOW_ADMIN_CONFIG_PATH = "/cfg/mlflow_admin.json"
