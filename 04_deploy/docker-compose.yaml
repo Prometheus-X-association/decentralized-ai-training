@@ -258,6 +258,7 @@ services:
     environment:
       - mlflow_tracking_uri_organizational=http://aggregator-top:5000
       - mlflow_tracking_uri_external=http://localhost:5100
+      - mlflow_tracking_uri_internal=http://localhost:5000
     networks:
       - edge_test
     volumes:

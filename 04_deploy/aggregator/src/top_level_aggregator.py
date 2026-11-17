@@ -17,7 +17,7 @@ TEST_DATA_PATH = "/data/course_test.npz"
 MLFLOW_USER_INFO = ".mlflow_user_info"
 MLFLOW_ADMIN_CONFIG_PATH = "/cfg/mlflow_admin.json"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
-OWN_MLFLOW = os.environ["MLFLOW_TRACKING_URI_INTERNAL"]
+OWN_MLFLOW = os.environ["mlflow_tracking_uri_internal"]
 
 MODELS_PATH = os.getenv("MODELS_PATH", "models")
 

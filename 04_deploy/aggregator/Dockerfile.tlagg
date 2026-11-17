@@ -13,7 +13,7 @@ EXPOSE 5000
 ENV MLFLOW_FLASK_SERVER_SECRET_KEY="QlZzjbifUtn2bEGPl5OM0FZ8Je7BmI7SpqMgo6jsyNI"
 ##if test_deploy:
 ENV MLFLOW_BASIC_AUTH=true
-ENV MLFLOW_TRACKING_URI_INTERNAL=http://localhost:5000
+#ENV MLFLOW_TRACKING_URI_INTERNAL=http://localhost:5000
 ENV MLFLOW_AUTH_CONFIG_PATH=cfg/basic_auth.ini
 
 CMD [ "bash", "top_level_agg_runner.sh" ]
