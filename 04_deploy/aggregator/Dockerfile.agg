@@ -2,7 +2,7 @@ FROM ghcr.io/alelevente/base_slim:latest
 WORKDIR /aggregator
 
 #copy files for aggregator:
-COPY src/. .
+COPY src/. src/.
 COPY agg_runner.sh .
 
 RUN chmod +x agg_runner.sh
