@@ -15,6 +15,7 @@ import fastapi
 import numpy as np
 import requests
 from fastapi import FastAPI, Body, Response, APIRouter
+from fastapi.openapi.docs import get_swagger_ui_html
 
 import agg_tree_processor
 
@@ -23,18 +24,29 @@ log = logging.getLogger(__name__)
 LOCK_NAME = os.getenv("LOCK_NAME", ".edge_fl_lock")
 ROOT_PATH = os.getenv("ROOT_PATH", "/")
 
-app = FastAPI(title="BB-01 - Orchestrator API", version="0.1.0", root_path=ROOT_PATH)
+app = FastAPI(title="BB-01 - Orchestrator API", version="2.0", root_path=ROOT_PATH,
+              docs_url=None)
 
+prefix = (ROOT_PATH or "").rstrip("/")
+openapi_url = f"{prefix}{app.openapi_url}" if prefix else app.openapi_url
 
 @app.api_route("/health", methods=["GET", "HEAD"], status_code=fastapi.status.HTTP_200_OK)
 async def health_check():
     pass
 
+@app.get("/docs", include_in_schema=False)
+@app.get("/docs/", include_in_schema=False)
+async def custom_swagger_ui():
+    return get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title=f"{app.title} - Swagger UI",
+    )
+
 
 ########################################################################################################################
 
 STATIC_PREFIX_API = os.getenv("STATIC_PREFIX_API", "")
-router = APIRouter(prefix=STATIC_PREFIX_API)
+router = APIRouter(prefix=STATIC_PREFIX_API, redirect_slashes=False)
 
 
 '''@router.get("/get_model")
@@ -140,6 +152,7 @@ async def _load_global_model():
 
 
 @router.put("/set_initial_global_model")
+@router.put("/set_initial_global_model/")
 async def set_global_model(model_resource: dict):
     '''
         Sets the global (initial) model (URIs).
@@ -167,6 +180,7 @@ def post_aggregate_request(parameters: dict) -> dict:
 
 
 @router.post("/start_training")
+@router.post("/start_training/")
 async def do_training(aggregation_tree: Annotated[
     dict,
     Body(

@@ -208,6 +208,9 @@ services:
       - mlflow_tracking_uri_internal=http://localhost:5000
       - mlflow_tracking_uri_organizational=http://aggregator-top:5000
       - mlflow_tracking_uri_external=http://localhost:5100
+      - MLFLOW_ADMIN_PASSWORD=admin_password
+      - MLFLOW_AGGREGATOR_PASSWORD=aggregator_password
+      - MLFLOW_MODEL_USER_PASSWORD=model_user_password
     networks:
       - edge_test
     volumes:
