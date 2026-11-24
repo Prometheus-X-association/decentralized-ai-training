@@ -15,13 +15,17 @@ LOCK_NAME = ".edge_fl_lock"
 TEST_DATA_PATH = "/data/mnist_test.npz"
 
 MLFLOW_USER_INFO = ".mlflow_user_info"
-MLFLOW_ADMIN_CONFIG_PATH = "/cfg/mlflow_admin.json"
+#MLFLOW_ADMIN_CONFIG_PATH = "/cfg/mlflow_admin.json"
 MLFLOW_EXPERIMENT_NAME = "edge-fl-experiment"
-OWN_MLFLOW = os.environ["MLFLOW_TRACKING_URI_INTERNAL"]
+OWN_MLFLOW = os.environ["mlflow_tracking_uri_internal"]
 
 MODELS_PATH = os.getenv("MODELS_PATH", "models")
 
 app = FastAPI(title="Top-level Aggregator")
+
+MLFLOW_ADMIN_PASSWORD = os.getenv("MLFLOW_AUTH_ADMIN_PASSWORD", "admin_password")
+MLFLOW_AGGREGATOR_PASSWORD = os.getenv("MLFLOW_AGGREGATOR_PASSWORD", "aggregator_password")
+MLFLOW_MODEL_USER_PASSWORD = os.getenv("MLFLOW_MODEL_USER_PASSWORD", "model_user_password")
 
 
 @app.on_event("startup")
@@ -51,12 +55,12 @@ async def startup_event():
             # configuring MLFlow credentials:
             # admin configuration:
             MLFLOW_ADMIN_CONFIG_PATH = os.path.join(os.getcwd(), "cfg", "mlflow_admin.json")
-            with open(MLFLOW_ADMIN_CONFIG_PATH, "r") as f:
-                admin_config = json.load(f)
+            #with open(MLFLOW_ADMIN_CONFIG_PATH, "r") as f:
+            #    admin_config = json.load(f)
             # creating an MLFlow experiment:
             print("configuring MLFlow server")
             os.environ["MLFLOW_TRACKING_USERNAME"] = "admin"
-            os.environ["MLFLOW_TRACKING_PASSWORD"] = admin_config["admin_password"]
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = MLFLOW_ADMIN_PASSWORD
             mlflow.set_tracking_uri(OWN_MLFLOW)
             experiment_id = mlflow.create_experiment(MLFLOW_EXPERIMENT_NAME)
 
@@ -69,7 +73,7 @@ async def startup_event():
 
             # user configuration:
             client = get_app_client("basic-auth", OWN_MLFLOW)
-            aggregator_password = admin_config["aggregator_password"]#secrets.token_urlsafe(32)
+            aggregator_password = MLFLOW_AGGREGATOR_PASSWORD#secrets.token_urlsafe(32)
             #print(f"Aggregator password: {aggregator_password}")
             client.create_user(username="aggregator", password=aggregator_password)
             client.grant_user_permission(
@@ -78,7 +82,7 @@ async def startup_event():
                 resource_id=experiment_id,
                 permission="MANAGE"
             )
-            client_password = admin_config["model_user_password"]#secrets.token_urlsafe(32)
+            client_password = MLFLOW_MODEL_USER_PASSWORD#secrets.token_urlsafe(32)
             client.create_user(username="model_user", password=client_password)
             #print(f"Model user password: {client_password}")
             client.grant_user_permission(
@@ -88,12 +92,12 @@ async def startup_event():
                 permission="USE"
             )
 
-            with open(MLFLOW_USER_INFO, "w") as f:
-                json.dump({
-                    "experiment_id": experiment_id,
-                    "aggregator_password": aggregator_password,
-                    "model_user_password": client_password
-                }, f)
+            #with open(MLFLOW_USER_INFO, "w") as f:
+            #    json.dump({
+            #        "experiment_id": experiment_id,
+            #        "aggregator_password": aggregator_password,
+            #        "model_user_password": client_password
+            #    }, f)
         else:
             print("MLFlow already configured, skipping setup")
 
@@ -148,10 +152,10 @@ async def do_aggregation(aggregation_config: dict) -> dict:
 
     print("storing agg'd model")
     if "MLFLOW_BASIC_AUTH" in os.environ:
-        with open(MLFLOW_USER_INFO, "r") as f:
-            mlflow_user_info = json.load(f)
+        #with open(MLFLOW_USER_INFO, "r") as f:
+        #    mlflow_user_info = json.load(f)
         os.environ["MLFLOW_TRACKING_USERNAME"] = "aggregator"
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_user_info["aggregator_password"]
+        os.environ["MLFLOW_TRACKING_PASSWORD"] = MLFLOW_AGGREGATOR_PASSWORD
     mlflow.set_tracking_uri(OWN_MLFLOW)
     if "MLFLOW_BASIC_AUTH" in os.environ:
         mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
@@ -165,7 +169,7 @@ async def do_aggregation(aggregation_config: dict) -> dict:
 
     if "MLFLOW_BASIC_AUTH" in os.environ:
         answer["aggregated_model_username"] = "model_user"
-        answer["aggregated_model_password"] = mlflow_user_info["model_user_password"]
+        answer["aggregated_model_password"] = MLFLOW_MODEL_USER_PASSWORD
 
     if aggregation_config["aggregation_algorithm"] == "deltarep":
         answer["reputations_scores"] = reputations

@@ -3,7 +3,9 @@
 if [ $# -eq 1 ]
 	then
 		./build_images.sh build_base
-		docker push ghcr.io/alelevente/edge_base:latest
+		#docker push ghcr.io/alelevente/edge_base:latest
+		#docker push ghcr.io/alevente/base_alpine:latest
+		#docker push ghcr.io/alevente/base_slim:latest
 	else
 		./build_images.sh
 fi
@@ -11,5 +13,6 @@ fi
 
 docker push ghcr.io/alelevente/data_processor:latest
 docker push ghcr.io/alelevente/aggregator:latest
+docker push ghcr.io/alelevente/top-level-aggregator:latest
 docker push ghcr.io/alelevente/orchestrator:latest
 
