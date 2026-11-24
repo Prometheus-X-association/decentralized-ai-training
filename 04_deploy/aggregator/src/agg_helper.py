@@ -123,7 +123,7 @@ async def aggregate_models(aggregation_config: dict,
 
     await _store_reputations(reputations, lock_name)
 
-    return combined_model
+    return combined_model, reputations["contribution"]
 
 async def forward_model(combined_model: keras.Model,
                         forward_to: str,

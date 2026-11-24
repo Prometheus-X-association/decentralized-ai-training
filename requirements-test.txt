@@ -3,3 +3,4 @@ requests
 mlflow
 scikit-learn
 numpy
+tensorflow-cpu
